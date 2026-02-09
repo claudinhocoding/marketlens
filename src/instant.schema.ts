@@ -55,6 +55,10 @@ const _schema = i.schema({
       location: i.string().optional(),
       url: i.string().optional(),
     }),
+    collections: i.entity({
+      name: i.string(),
+      description: i.string().optional(),
+    }),
     contacts: i.entity({
       name: i.string(),
       title: i.string().optional(),
@@ -116,6 +120,10 @@ const _schema = i.schema({
     companyEvents: {
       forward: { on: "companies", has: "many", label: "events" },
       reverse: { on: "events", has: "one", label: "company" },
+    },
+    collectionCompanies: {
+      forward: { on: "collections", has: "many", label: "companies" },
+      reverse: { on: "companies", has: "many", label: "collections" },
     },
     companyContacts: {
       forward: { on: "companies", has: "many", label: "contacts" },

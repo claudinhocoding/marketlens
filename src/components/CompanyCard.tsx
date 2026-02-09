@@ -11,12 +11,19 @@ interface CompanyCardProps {
   is_mine: boolean;
   scraped_at?: string;
   featureCount?: number;
+  thumbnailUrl?: string;
 }
 
-export default function CompanyCard({ id, name, url, description, industry, is_mine, scraped_at, featureCount }: CompanyCardProps) {
+export default function CompanyCard({ id, name, url, description, industry, is_mine, scraped_at, featureCount, thumbnailUrl }: CompanyCardProps) {
   return (
     <Link href={`/companies/${id}`}>
-      <div className="bg-card border border-border rounded-lg p-5 hover:bg-card-hover hover:border-accent/30 transition-all cursor-pointer">
+      <div className="bg-card border border-border rounded-lg overflow-hidden hover:bg-card-hover hover:border-accent/30 transition-all cursor-pointer">
+        {thumbnailUrl && (
+          <div className="h-32 bg-border overflow-hidden">
+            <img src={thumbnailUrl} alt={name} className="w-full h-full object-cover" />
+          </div>
+        )}
+        <div className="p-5">
         <div className="flex items-start justify-between mb-3">
           <h3 className="font-semibold text-lg">{name}</h3>
           {is_mine && (
@@ -30,6 +37,7 @@ export default function CompanyCard({ id, name, url, description, industry, is_m
           {scraped_at && <span>Scraped {new Date(scraped_at).toLocaleDateString()}</span>}
         </div>
         <div className="mt-2 text-xs text-muted truncate">{url}</div>
+        </div>
       </div>
     </Link>
   );
