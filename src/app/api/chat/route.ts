@@ -1,26 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
-import { execSync } from "child_process";
+import { getAdminDb } from "@/lib/admin-db";
+import { handleQuery } from "@/lib/agent";
 
 export async function POST(req: NextRequest) {
   try {
     const { message, history } = await req.json();
     if (!message) return NextResponse.json({ error: "message required" }, { status: 400 });
 
-    const escapedMessage = message.replace(/'/g, "\\'").replace(/"/g, '\\"');
-    const result = execSync(
-      `python3 -c "
-import json, sys
-sys.path.insert(0, '.')
-from src.agent.agent import handle_query
-response = handle_query('${escapedMessage}')
-print(json.dumps({'response': response}))
-"`,
-      { cwd: process.cwd(), timeout: 120000, encoding: "utf-8" }
-    );
+    // Build context from InstantDB
+    const db = getAdminDb();
+    const data = await db.query({
+      companies: { features: {}, pricing_tiers: {} },
+    });
 
-    const data = JSON.parse(result.trim());
-    return NextResponse.json(data);
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    const context = JSON.stringify(data.companies || [], null, 2).slice(0, 10000);
+    const response = await handleQuery(message, context, history);
+
+    return NextResponse.json({ response });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

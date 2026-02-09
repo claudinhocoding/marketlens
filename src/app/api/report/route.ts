@@ -1,38 +1,47 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/admin-db";
 import { id } from "@instantdb/admin";
-import { execSync } from "child_process";
+import { generateCompetitiveReport, generateMarketOverview } from "@/lib/reports";
+import type { CompanyData } from "@/lib/analysis";
 
 export async function POST(req: NextRequest) {
   try {
     const { type } = await req.json();
-
-    const result = execSync(
-      `python3 -c "
-import json, sys
-sys.path.insert(0, '.')
-from src.reports import generate_report
-data = generate_report('${(type || "competitive_assessment").replace(/'/g, "\\'")}')
-print(json.dumps(data))
-"`,
-      { cwd: process.cwd(), timeout: 180000, encoding: "utf-8" }
-    );
-
-    const report = JSON.parse(result.trim());
     const db = getAdminDb();
-    const rid = id();
 
+    const data = await db.query({
+      companies: {
+        features: {},
+        pricing_tiers: {},
+        marketing_intel: {},
+        product_intel: {},
+      },
+    });
+
+    const companies: CompanyData[] = (data.companies || []).map((c: Record<string, unknown>) => ({
+      name: c.name as string,
+      features: (c.features as { name: string; category?: string; description?: string }[]) || [],
+      pricing_tiers: (c.pricing_tiers as { name: string; price?: string }[]) || [],
+    }));
+
+    const report =
+      type === "market_overview"
+        ? await generateMarketOverview(companies)
+        : await generateCompetitiveReport(companies);
+
+    const rid = id();
     await db.transact(
       db.tx.reports[rid].update({
-        title: report.title || `${type} Report`,
+        title: report.title,
         type: type || "competitive_assessment",
-        content: report.content || "",
+        content: report.content,
         created_at: new Date().toISOString(),
       })
     );
 
     return NextResponse.json({ success: true, reportId: rid, report });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
