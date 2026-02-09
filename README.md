@@ -1,145 +1,71 @@
-# MarketLens
+# MarketLens — Competitive Intelligence Platform
 
-**Competitive Intelligence Platform** — Scrape competitor websites, extract product and marketing intelligence using AI, compare features, identify market gaps, and generate strategic reports.
+AI-powered competitive intelligence platform built with **Next.js 15**, **InstantDB**, and **Tailwind CSS**, with Python-based scraping and Claude-powered analysis.
 
-## Features
+## Architecture
 
-- **Competitor Scraping** — Crawl any website with Playwright, extract company info, blog posts, events, features, and pricing
-- **Product Intelligence** — AI-powered extraction of feature lists, tech stack clues, and product positioning
-- **Marketing Intelligence** — Extract value propositions, target personas, key messages, differentiators, and pain points
-- **Competitive Comparison** — Feature matrix, marketing comparison, persona overlap analysis, gap identification
-- **Market Targeting Matrix** — Heatmap of which competitors target which verticals, with whitespace opportunity detection
-- **Assessment Reports** — AI-generated executive summaries and detailed markdown reports with actionable recommendations
-- **AI Agent** — Conversational interface to query all intelligence data, backed by ChromaDB vector search
-- **Events Calendar** — Track competitor conferences, webinars, and events
+- **Frontend**: Next.js 15 (App Router) + InstantDB (real-time) + Tailwind CSS (dark mode)
+- **Backend**: Next.js API routes that call Python modules via subprocess
+- **AI**: Claude API for extraction, analysis, comparison, and agent chat
+- **Database**: InstantDB (real-time, schema-driven)
+- **Scraping**: Python (Playwright-based crawler)
 
-## Tech Stack
+## Pages
 
-- **Backend:** Python + FastAPI
-- **Storage:** SQLite (structured data) + ChromaDB (vector search)
-- **Scraping:** Playwright (headless browser)
-- **AI:** Anthropic Claude API (extraction + analysis + agent)
-- **CLI:** Click + Rich
+| Route | Description |
+|---|---|
+| `/` | Dashboard — tracked companies, quick stats |
+| `/companies/[id]` | Company detail — features, pricing, marketing intel, product intel |
+| `/compare` | Feature matrix, marketing heatmap, saved comparisons |
+| `/reports` | AI-generated reports (competitive assessment, gap analysis, positioning) |
+| `/agent` | Chat interface for the AI competitive intelligence agent |
 
-## Quick Start
+## API Routes
+
+| Endpoint | Method | Description |
+|---|---|---|
+| `/api/scrape` | POST | Scrape a company website |
+| `/api/extract` | POST | Run Claude extraction on scraped data |
+| `/api/compare` | POST | Run competitive comparison analysis |
+| `/api/report` | POST | Generate an intelligence report |
+| `/api/chat` | POST | Chat with the AI agent |
+
+## Data Model (InstantDB)
+
+- **companies** — name, url, description, industry, is_mine, scraped_at
+- **features** — name, category, description (linked to company)
+- **pricing_tiers** — name, price, billing_period, features_text (linked to company)
+- **marketing_intel** — value_props, target_personas, key_messages, differentiators, pain_points (linked to company)
+- **product_intel** — feature_summary, tech_stack, positioning (linked to company)
+- **blog_posts** — title, url, date, summary (linked to company)
+- **events** — name, date, location, url (linked to company)
+- **comparisons** — type, data (JSON), created_at
+- **reports** — title, type, content (markdown), created_at
+
+## Setup
 
 ```bash
-# Clone and install
-git clone https://github.com/claudinhocoding/marketlens.git
-cd marketlens
+# Install dependencies
+npm install
 pip install -r requirements.txt
-playwright install chromium
 
-# Configure
+# Copy environment variables
 cp .env.example .env
-# Edit .env and add your ANTHROPIC_API_KEY
+# Fill in your API keys
 
-# Run the API server
-make run
-# → http://localhost:8000/docs for Swagger UI
+# Push schema to InstantDB
+npx tsx scripts/push-schema.ts
+
+# Run development server
+npm run dev
 ```
 
-## CLI Usage
+## Python Modules
 
-```bash
-# Scrape a competitor
-python scripts/cli.py scrape https://competitor.com
+The Python backend modules handle scraping and AI-powered analysis:
 
-# Scrape your own company
-python scripts/cli.py scrape https://mycompany.com --mine
-
-# List tracked companies
-python scripts/cli.py list
-
-# Set your company for comparisons
-python scripts/cli.py set-mine 1
-
-# Feature comparison matrix
-python scripts/cli.py compare
-
-# Gap analysis
-python scripts/cli.py gaps
-
-# Market targeting matrix
-python scripts/cli.py targeting
-
-# Generate full assessment report
-python scripts/cli.py report
-
-# View all competitor events
-python scripts/cli.py events
-
-# Interactive AI chat
-python scripts/cli.py chat
-```
-
-## API Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/api/scrape` | Scrape a website and extract all intelligence |
-| `GET` | `/api/companies` | List all tracked companies |
-| `GET` | `/api/companies/{id}` | Get company details |
-| `DELETE` | `/api/companies/{id}` | Remove a company |
-| `POST` | `/api/companies/{id}/set-mine` | Designate as your company |
-| `GET` | `/api/companies/{id}/product-intelligence` | Product intel |
-| `GET` | `/api/companies/{id}/marketing-intelligence` | Marketing intel |
-| `GET` | `/api/companies/{id}/pricing` | Pricing tiers |
-| `GET` | `/api/companies/{id}/events` | Company events |
-| `GET` | `/api/events` | All events calendar |
-| `POST` | `/api/analysis/feature-matrix` | Feature comparison matrix |
-| `POST` | `/api/analysis/marketing-comparison` | Marketing comparison |
-| `POST` | `/api/analysis/persona-overlap` | Persona overlap analysis |
-| `POST` | `/api/analysis/gaps` | Gap/whitespace analysis |
-| `POST` | `/api/analysis/targeting-matrix` | Market targeting heatmap |
-| `POST` | `/api/reports/executive-summary` | AI executive summary |
-| `POST` | `/api/reports/full` | Full assessment report |
-| `POST` | `/api/agent/query` | Query the AI agent |
-| `POST` | `/api/agent/reset` | Reset agent conversation |
-| `GET` | `/api/search?q=...` | Semantic search across all data |
-
-## Example: Scrape via API
-
-```bash
-curl -X POST http://localhost:8000/api/scrape \
-  -H "Content-Type: application/json" \
-  -d '{"url": "https://competitor.com", "max_pages": 15, "is_mine": false}'
-```
-
-## Example: Ask the AI Agent
-
-```bash
-curl -X POST http://localhost:8000/api/agent/query \
-  -H "Content-Type: application/json" \
-  -d '{"query": "What features do our competitors have that we are missing?"}'
-```
-
-## Project Structure
-
-```
-marketlens/
-├── src/
-│   ├── api/          # FastAPI routes and schemas
-│   ├── scraper/      # Playwright web crawler
-│   ├── extraction/   # Claude-powered intelligence extraction
-│   ├── analysis/     # Comparison, targeting matrix, gap analysis
-│   ├── agent/        # Conversational AI agent
-│   ├── db/           # SQLAlchemy models + ChromaDB vector store
-│   └── reports/      # Report generation
-├── config/           # Settings and configuration
-├── scripts/          # CLI entry point
-├── tests/            # Test suite
-├── requirements.txt
-├── Makefile
-└── README.md
-```
-
-## Running Tests
-
-```bash
-make test
-```
-
-## License
-
-MIT
+- `src/scraper/` — Website crawling (Playwright)
+- `src/extraction/` — Claude-powered data extraction
+- `src/analysis/` — Competitive comparison and targeting matrix
+- `src/reports/` — Report generation
+- `src/agent/` — AI agent for natural language queries
