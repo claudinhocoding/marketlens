@@ -2,7 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { CompanyData } from "./analysis";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-const model = process.env.ML_CLAUDE_MODEL || "claude-sonnet-4-5-20250514";
+const model = process.env.ML_CLAUDE_MODEL || "claude-sonnet-4-5-20250929";
 
 async function askClaude(system: string, prompt: string): Promise<string> {
   const res = await client.messages.create({

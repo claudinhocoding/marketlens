@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-const model = process.env.ML_CLAUDE_MODEL || "claude-sonnet-4-5-20250514";
+const model = process.env.ML_CLAUDE_MODEL || "claude-sonnet-4-5-20250929";
 
 const SYSTEM_PROMPT = `You are a competitive intelligence analyst assistant for MarketLens. You help users understand competitive landscapes, analyze companies, compare features, and develop strategy.
 
