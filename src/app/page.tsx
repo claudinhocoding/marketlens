@@ -7,7 +7,7 @@ import { useState } from "react";
 
 export default function Dashboard() {
   const { isLoading, error, data } = db.useQuery({
-    companies: { features: {}, pricing_tiers: {}, marketing_intel: {}, social_profiles: {}, collections: {} },
+    companies: { features: {}, pricing_tiers: {}, marketing_intel: {}, social_profiles: {}, collections: {}, job_listings: {}, events: {} },
     collections: { companies: {} },
   });
   const [showAdd, setShowAdd] = useState(false);
@@ -124,16 +124,18 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        {/* Stats Bar */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
           {[
-            { label: "Companies", value: companies.length },
-            { label: "Your Companies", value: mine.length },
-            { label: "Competitors", value: competitors.length },
-            { label: "Total Features", value: companies.reduce((acc, c) => acc + (c.features?.length || 0), 0) },
+            { label: "Companies Tracked", value: companies.length, icon: "🏢" },
+            { label: "Features Identified", value: companies.reduce((acc, c) => acc + (c.features?.length || 0), 0), icon: "⚡" },
+            { label: "Open Jobs", value: companies.reduce((acc, c) => acc + (c.job_listings?.length || 0), 0), icon: "💼" },
+            { label: "Events Tracked", value: companies.reduce((acc, c) => acc + (c.events?.length || 0), 0), icon: "📅" },
+            { label: "Total Social Reach", value: companies.reduce((acc, c) => acc + (c.social_profiles || []).reduce((s: number, p: { followers_count?: number }) => s + (p.followers_count || 0), 0), 0), icon: "📣" },
           ].map((stat) => (
             <div key={stat.label} className="bg-card border border-border rounded-lg p-4 text-center">
-              <div className="text-2xl font-bold text-accent">{stat.value}</div>
+              <div className="text-lg mb-1">{stat.icon}</div>
+              <div className="text-2xl font-bold text-accent">{typeof stat.value === "number" && stat.value >= 1000 ? `${(stat.value / 1000).toFixed(1)}k` : stat.value}</div>
               <div className="text-xs text-muted mt-1">{stat.label}</div>
             </div>
           ))}
