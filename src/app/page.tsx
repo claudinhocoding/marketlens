@@ -17,6 +17,26 @@ export default function Dashboard() {
   const [newCollName, setNewCollName] = useState("");
   const [showNewColl, setShowNewColl] = useState(false);
   const [selectedCollection, setSelectedCollection] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const handleShare = async () => {
+    const url = window.location.href;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // fallback
+      const input = document.createElement("input");
+      input.value = url;
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand("copy");
+      document.body.removeChild(input);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   if (isLoading) return <div className="text-muted py-20 text-center">Loading…</div>;
   if (error) return <div className="text-danger py-20 text-center">Error: {error.message}</div>;
@@ -99,9 +119,14 @@ export default function Dashboard() {
             <h1 className="text-2xl font-bold">Dashboard</h1>
             <p className="text-muted text-sm mt-1">Track and analyze your competitive landscape</p>
           </div>
-          <button onClick={() => setShowAdd(!showAdd)} className="bg-accent hover:bg-accent-hover text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-            + Add Company
-          </button>
+          <div className="flex gap-2">
+            <button onClick={handleShare} className="bg-card border border-border hover:border-accent/30 text-sm px-4 py-2 rounded-lg transition-colors">
+              {copied ? "✅ Copied!" : "🔗 Share"}
+            </button>
+            <button onClick={() => setShowAdd(!showAdd)} className="bg-accent hover:bg-accent-hover text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+              + Add Company
+            </button>
+          </div>
         </div>
 
         {showAdd && (
