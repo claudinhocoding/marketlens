@@ -21,6 +21,7 @@ export default function CompanyDetail() {
       blog_posts: {},
       events: {},
       social_profiles: {},
+      contacts: {},
     },
   });
 
@@ -73,6 +74,33 @@ export default function CompanyDetail() {
         <>
           <Section title="Social Profiles">
             <SocialFollowers profiles={company.social_profiles || []} />
+          </Section>
+
+          <Section title="Contacts">
+            {company.contacts && company.contacts.length > 0 ? (
+              <div className="bg-card border border-border rounded-lg overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border">
+                      <th className="text-left py-3 px-4 text-muted font-medium">Name</th>
+                      <th className="text-left py-3 px-4 text-muted font-medium">Title</th>
+                      <th className="text-left py-3 px-4 text-muted font-medium">Email</th>
+                      <th className="text-left py-3 px-4 text-muted font-medium">Phone</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {company.contacts.map((c) => (
+                      <tr key={c.id} className="border-b border-border/50 hover:bg-card-hover">
+                        <td className="py-2 px-4">{c.name}</td>
+                        <td className="py-2 px-4 text-muted">{c.title || "—"}</td>
+                        <td className="py-2 px-4 text-muted">{c.email ? <a href={`mailto:${c.email}`} className="text-accent hover:underline">{c.email}</a> : "—"}</td>
+                        <td className="py-2 px-4 text-muted">{c.phone || "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : <Empty />}
           </Section>
 
           <Section title="Blog Posts">

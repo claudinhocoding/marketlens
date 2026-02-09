@@ -73,6 +73,15 @@ export async function POST(req: NextRequest) {
       ]);
     }
 
+    // Store contacts
+    for (const c of extracted.contacts || []) {
+      const cid = id();
+      await db.transact([
+        db.tx.contacts[cid].update({ name: c.name, title: c.title || "", email: c.email || "", phone: c.phone || "", source_url: url }),
+        db.tx.companies[companyId].link({ contacts: cid }),
+      ]);
+    }
+
     // Store product intel
     if (extracted.product) {
       const pid = id();

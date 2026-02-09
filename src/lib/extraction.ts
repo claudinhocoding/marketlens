@@ -122,13 +122,41 @@ export async function extractPricing(html: string): Promise<PricingTier[]> {
   return [];
 }
 
+export interface Contact {
+  name: string;
+  title: string;
+  email: string;
+  phone: string;
+}
+
+export async function extractContacts(html: string): Promise<Contact[]> {
+  const text = html.slice(0, 30000);
+  const raw = await askClaude(
+    "You extract contact information from website content. Return JSON only.",
+    `Extract any contact information (team members, leadership, support contacts) from this website content. Return a JSON array of objects with keys: name (string), title (string), email (string), phone (string). Only include entries where at least a name is found.\n\nContent:\n${text}`
+  );
+  const match = raw.match(/```(?:json)?\s*([\s\S]*?)```/) || raw.match(/(\[[\s\S]*\])/);
+  if (match) {
+    try {
+      const arr = JSON.parse(match[1]);
+      if (Array.isArray(arr)) return arr;
+    } catch {}
+  }
+  try {
+    const arr = JSON.parse(raw);
+    if (Array.isArray(arr)) return arr;
+  } catch {}
+  return [];
+}
+
 export async function extractAll(text: string) {
   const allText = text.slice(0, 40000);
-  const [product, marketing, features, pricing] = await Promise.all([
+  const [product, marketing, features, pricing, contacts] = await Promise.all([
     extractProductIntel(allText),
     extractMarketingIntel(allText),
     extractFeatures(allText),
     extractPricing(allText),
+    extractContacts(allText),
   ]);
-  return { product, marketing, features, pricing_tiers: pricing };
+  return { product, marketing, features, pricing_tiers: pricing, contacts };
 }

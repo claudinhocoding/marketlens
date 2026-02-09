@@ -55,6 +55,13 @@ const _schema = i.schema({
       location: i.string().optional(),
       url: i.string().optional(),
     }),
+    contacts: i.entity({
+      name: i.string(),
+      title: i.string().optional(),
+      email: i.string().optional(),
+      phone: i.string().optional(),
+      source_url: i.string().optional(),
+    }),
     social_profiles: i.entity({
       platform: i.string(),
       followers_count: i.number().optional(),
@@ -109,6 +116,10 @@ const _schema = i.schema({
     companyEvents: {
       forward: { on: "companies", has: "many", label: "events" },
       reverse: { on: "events", has: "one", label: "company" },
+    },
+    companyContacts: {
+      forward: { on: "companies", has: "many", label: "contacts" },
+      reverse: { on: "contacts", has: "one", label: "company" },
     },
     companySocialProfiles: {
       forward: { on: "companies", has: "many", label: "social_profiles" },
