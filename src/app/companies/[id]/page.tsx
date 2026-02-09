@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useState } from "react";
 import FeatureMatrix from "@/components/FeatureMatrix";
 import SocialFollowers from "@/components/SocialFollowers";
+import WebsiteAssessment from "@/components/WebsiteAssessment";
 
 type Tab = "overview" | "product" | "marketing";
 
@@ -187,6 +188,12 @@ export default function CompanyDetail() {
             ) : <Empty />}
           </Section>
         </>
+      )}
+
+      {tab === "product" && (
+        <div className="mt-6">
+          <WebsiteAssessment companyId={company.id} companyName={company.name} hasData={!!company.features?.length || !!product} />
+        </div>
       )}
 
       {tab === "marketing" && (

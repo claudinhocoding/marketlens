@@ -26,6 +26,20 @@ export async function generateCompetitiveReport(companies: CompanyData[]) {
   };
 }
 
+export async function generateAssessment(company: CompanyData) {
+  const content = await askClaude(
+    "You are a competitive intelligence analyst. Return JSON only.",
+    `Generate a website assessment for "${company.name}". Return JSON with keys: summary (string), opportunities (array of objects with: title (string), rationale (string), execution_requirements (string), risk (Low|Medium|High), estimated_impact (string)).\n\nCompany data:\n${JSON.stringify(company, null, 2)}`
+  );
+  // Try to extract JSON
+  const match = content.match(/```(?:json)?\s*([\s\S]*?)```/) || content.match(/(\{[\s\S]*\})/);
+  const jsonContent = match ? match[1] : content;
+  return {
+    title: `Website Assessment: ${company.name}`,
+    content: jsonContent,
+  };
+}
+
 export async function generateMarketOverview(companies: CompanyData[]) {
   const content = await askClaude(
     "You are a market analyst writing a market overview report in markdown.",
