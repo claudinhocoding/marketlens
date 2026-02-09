@@ -149,6 +149,34 @@ export async function extractContacts(html: string): Promise<Contact[]> {
   return [];
 }
 
+export interface JobListing {
+  title: string;
+  location: string;
+  department: string;
+  url: string;
+  posted_date: string;
+}
+
+export async function extractJobListings(html: string): Promise<JobListing[]> {
+  const text = html.slice(0, 30000);
+  const raw = await askClaude(
+    "You extract job listings from website content. Return JSON only.",
+    `Extract any job listings/open positions from this website content. Return a JSON array of objects with keys: title (string), location (string), department (string), url (string), posted_date (string). Only include actual job listings.\n\nContent:\n${text}`
+  );
+  const match = raw.match(/```(?:json)?\s*([\s\S]*?)```/) || raw.match(/(\[[\s\S]*\])/);
+  if (match) {
+    try {
+      const arr = JSON.parse(match[1]);
+      if (Array.isArray(arr)) return arr;
+    } catch {}
+  }
+  try {
+    const arr = JSON.parse(raw);
+    if (Array.isArray(arr)) return arr;
+  } catch {}
+  return [];
+}
+
 export async function extractAll(text: string) {
   const allText = text.slice(0, 40000);
   const [product, marketing, features, pricing, contacts] = await Promise.all([

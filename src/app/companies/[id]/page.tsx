@@ -22,6 +22,7 @@ export default function CompanyDetail() {
       events: {},
       social_profiles: {},
       contacts: {},
+      job_listings: {},
     },
   });
 
@@ -113,6 +114,25 @@ export default function CompanyDetail() {
                       {p.summary && <p className="text-xs text-muted mt-1">{p.summary}</p>}
                     </div>
                     <span className="text-xs text-muted">{p.date}</span>
+                  </div>
+                ))}
+              </div>
+            ) : <Empty />}
+          </Section>
+
+          <Section title="Open Jobs">
+            {company.job_listings && company.job_listings.length > 0 ? (
+              <div className="space-y-2">
+                {company.job_listings.map((j) => (
+                  <div key={j.id} className="bg-card border border-border rounded-lg p-4 flex items-center justify-between">
+                    <div>
+                      <h4 className="font-medium text-sm">{j.title}</h4>
+                      <div className="text-xs text-muted mt-1">{[j.department, j.location].filter(Boolean).join(" · ")}</div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {j.posted_date && <span className="text-xs text-muted">{j.posted_date}</span>}
+                      {j.url && <a href={j.url} target="_blank" rel="noopener noreferrer" className="text-accent text-xs hover:underline">View ↗</a>}
+                    </div>
                   </div>
                 ))}
               </div>

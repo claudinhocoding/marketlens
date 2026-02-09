@@ -73,6 +73,20 @@ export async function POST(req: NextRequest) {
       ]);
     }
 
+    // Extract and store job listings from job pages
+    if (scraped.jobPages.length > 0) {
+      const { extractJobListings } = await import("@/lib/extraction");
+      const jobText = scraped.jobPages.map((p) => p.text).join("\n\n");
+      const jobs = await extractJobListings(jobText);
+      for (const j of jobs) {
+        const jid = id();
+        await db.transact([
+          db.tx.job_listings[jid].update({ title: j.title, location: j.location || "", department: j.department || "", url: j.url || "", posted_date: j.posted_date || "" }),
+          db.tx.companies[companyId].link({ job_listings: jid }),
+        ]);
+      }
+    }
+
     // Store contacts
     for (const c of extracted.contacts || []) {
       const cid = id();

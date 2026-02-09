@@ -66,6 +66,13 @@ const _schema = i.schema({
       phone: i.string().optional(),
       source_url: i.string().optional(),
     }),
+    job_listings: i.entity({
+      title: i.string(),
+      location: i.string().optional(),
+      department: i.string().optional(),
+      url: i.string().optional(),
+      posted_date: i.string().optional(),
+    }),
     social_profiles: i.entity({
       platform: i.string(),
       followers_count: i.number().optional(),
@@ -128,6 +135,10 @@ const _schema = i.schema({
     companyContacts: {
       forward: { on: "companies", has: "many", label: "contacts" },
       reverse: { on: "contacts", has: "one", label: "company" },
+    },
+    companyJobListings: {
+      forward: { on: "companies", has: "many", label: "job_listings" },
+      reverse: { on: "job_listings", has: "one", label: "company" },
     },
     companySocialProfiles: {
       forward: { on: "companies", has: "many", label: "social_profiles" },
