@@ -18,9 +18,9 @@ export default function CompanyCard({ id, name, url, description, industry, is_m
   return (
     <Link href={`/companies/${id}`}>
       <div className="bg-card border border-border rounded-lg overflow-hidden hover:bg-card-hover hover:border-accent/30 transition-all cursor-pointer">
-        {thumbnailUrl && (
+        {thumbnailUrl && thumbnailUrl.length > 0 && (
           <div className="h-32 bg-border overflow-hidden">
-            <img src={thumbnailUrl} alt={name} className="w-full h-full object-cover" />
+            <img src={thumbnailUrl} alt={name} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
           </div>
         )}
         <div className="p-5">
