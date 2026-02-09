@@ -6,6 +6,7 @@ import FeatureMatrix from "@/components/FeatureMatrix";
 import TargetingHeatmap from "@/components/TargetingHeatmap";
 import ComparisonTable from "@/components/ComparisonTable";
 import PositioningQuadrant from "@/components/PositioningQuadrant";
+import TargetingMatrix from "@/components/TargetingMatrix";
 
 export default function ComparePage() {
   const { isLoading, error, data } = db.useQuery({
@@ -84,8 +85,9 @@ export default function ComparePage() {
       )}
 
       {tab === "marketing" && companies.length >= 2 && (
-        <div className="mt-6">
+        <div className="mt-6 space-y-6">
           <PositioningQuadrant companies={companies.map((c) => ({ id: c.id, name: c.name }))} />
+          <TargetingMatrix companies={companies.map((c) => ({ id: c.id, name: c.name }))} />
         </div>
       )}
 
