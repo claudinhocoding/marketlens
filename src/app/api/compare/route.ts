@@ -41,13 +41,28 @@ export async function POST(req: NextRequest) {
     const myCompany = companies.find((c: CompanyData) => body.myCompanyName && c.name === body.myCompanyName) || companies[0];
     const competitors = companies.filter((c: CompanyData) => c !== myCompany);
 
-    const [featureMatrix, heatmap, gaps] = await Promise.all([
-      generateFeatureMatrix(companies),
-      generateTargetingHeatmap(companies),
-      myCompany ? identifyGaps(competitors, myCompany) : null,
-    ]);
+    let comparison: Record<string, unknown>;
 
-    const comparison = { featureMatrix, heatmap, gaps };
+    if (body.type === "positioning") {
+      const { scoreCompaniesOnAxes } = await import("@/lib/analysis");
+      const positioning = await scoreCompaniesOnAxes(companies, body.xAxis || "Product Completeness", body.yAxis || "Growth Momentum");
+      comparison = { positioning };
+    } else if (body.type === "targeting_matrix") {
+      const { generateTargetingMatrix } = await import("@/lib/analysis");
+      const targetingMatrix = await generateTargetingMatrix(companies);
+      comparison = { targetingMatrix };
+    } else if (body.type === "pain_points") {
+      const { analyzePainPoints } = await import("@/lib/analysis");
+      const painPoints = await analyzePainPoints(companies);
+      comparison = { painPoints };
+    } else {
+      const [featureMatrix, heatmap, gaps] = await Promise.all([
+        generateFeatureMatrix(companies),
+        generateTargetingHeatmap(companies),
+        myCompany ? identifyGaps(competitors, myCompany) : null,
+      ]);
+      comparison = { featureMatrix, heatmap, gaps };
+    }
     const cid = id();
 
     await db.transact(

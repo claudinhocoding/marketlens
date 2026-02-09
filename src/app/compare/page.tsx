@@ -5,6 +5,7 @@ import { useState } from "react";
 import FeatureMatrix from "@/components/FeatureMatrix";
 import TargetingHeatmap from "@/components/TargetingHeatmap";
 import ComparisonTable from "@/components/ComparisonTable";
+import PositioningQuadrant from "@/components/PositioningQuadrant";
 
 export default function ComparePage() {
   const { isLoading, error, data } = db.useQuery({
@@ -80,6 +81,12 @@ export default function ComparePage() {
         ) : (
           <p className="text-muted text-sm">Add at least 2 companies to compare marketing.</p>
         )
+      )}
+
+      {tab === "marketing" && companies.length >= 2 && (
+        <div className="mt-6">
+          <PositioningQuadrant companies={companies.map((c) => ({ id: c.id, name: c.name }))} />
+        </div>
       )}
 
       {tab === "saved" && <ComparisonTable comparisons={comparisons} />}

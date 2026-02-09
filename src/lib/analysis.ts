@@ -57,6 +57,61 @@ export async function generateTargetingHeatmap(companies: CompanyData[]) {
   }
 }
 
+export async function scoreCompaniesOnAxes(companies: CompanyData[], xAxis: string, yAxis: string) {
+  const summary = companies.map((c) => ({
+    name: c.name,
+    features: c.features?.map((f) => f.name) || [],
+    positioning: c.product_intel?.positioning || "",
+  }));
+  const raw = await askClaude(
+    "You are a competitive intelligence analyst. Return JSON only.",
+    `Score each company on two axes: "${xAxis}" and "${yAxis}". Each score should be 0.0 to 1.0. Return a JSON array of objects with keys: name (string), x (number 0-1), y (number 0-1).\n\n${JSON.stringify(summary)}`
+  );
+  try {
+    const match = raw.match(/```(?:json)?\s*([\s\S]*?)```/) || raw.match(/(\[[\s\S]*\])/);
+    return match ? JSON.parse(match[1]) : JSON.parse(raw);
+  } catch {
+    return [];
+  }
+}
+
+export async function generateTargetingMatrix(companies: CompanyData[]) {
+  const summary = companies.map((c) => ({
+    name: c.name,
+    target_personas: c.marketing_intel?.target_personas || [],
+    value_props: c.marketing_intel?.value_props || [],
+    positioning: c.product_intel?.positioning || "",
+  }));
+  const raw = await askClaude(
+    "You are a competitive intelligence analyst. Return JSON only.",
+    `Analyze which industry verticals each company targets. Return JSON with keys: verticals (string[]), ratings (object mapping vertical name to object mapping company name to "HIGH"|"MEDIUM"|"LOW"|"NONE").\n\n${JSON.stringify(summary)}`
+  );
+  try {
+    const match = raw.match(/```(?:json)?\s*([\s\S]*?)```/) || raw.match(/(\{[\s\S]*\})/);
+    return match ? JSON.parse(match[1]) : JSON.parse(raw);
+  } catch {
+    return { verticals: [], ratings: {} };
+  }
+}
+
+export async function analyzePainPoints(companies: CompanyData[]) {
+  const summary = companies.map((c) => ({
+    name: c.name,
+    value_props: c.marketing_intel?.value_props || [],
+    differentiators: c.marketing_intel?.differentiators || [],
+  }));
+  const raw = await askClaude(
+    "You are a competitive intelligence analyst. Return JSON only.",
+    `Identify pain points addressed across these companies. Categorize each as: Automation, Cost, Quality, Time, Risk, or Other. Return JSON with keys: pain_points (array of objects with: text (string), category (string), addressed_by (string[] of company names)).\n\n${JSON.stringify(summary)}`
+  );
+  try {
+    const match = raw.match(/```(?:json)?\s*([\s\S]*?)```/) || raw.match(/(\{[\s\S]*\})/);
+    return match ? JSON.parse(match[1]) : JSON.parse(raw);
+  } catch {
+    return { pain_points: [] };
+  }
+}
+
 export async function identifyGaps(companies: CompanyData[], myCompany: CompanyData) {
   const raw = await askClaude(
     "You are a competitive intelligence analyst. Return JSON only.",
