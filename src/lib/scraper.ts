@@ -9,6 +9,12 @@ export interface ScrapedPage {
   metadata: Record<string, string>;
 }
 
+export interface SocialProfile {
+  platform: string;
+  url: string;
+  followers_count?: number;
+}
+
 export interface ScrapedSite {
   name: string;
   url: string;
@@ -16,6 +22,9 @@ export interface ScrapedSite {
   industry: string;
   mainPage: ScrapedPage;
   subPages: ScrapedPage[];
+  socialProfiles: SocialProfile[];
+  thumbnailUrl?: string;
+  jobPages: ScrapedPage[];
 }
 
 async function fetchPage(url: string): Promise<ScrapedPage> {
@@ -74,17 +83,102 @@ function findSubPages(links: string[], baseUrl: string): string[] {
   return found.slice(0, 10);
 }
 
-export async function scrapeWebsite(url: string): Promise<ScrapedSite> {
+function extractSocialProfiles(links: string[]): SocialProfile[] {
+  const patterns: { platform: string; regex: RegExp }[] = [
+    { platform: "LinkedIn", regex: /linkedin\.com\/(company|in)\// },
+    { platform: "Twitter/X", regex: /(twitter\.com|x\.com)\/(?!share)/ },
+    { platform: "YouTube", regex: /youtube\.com\/(c\/|channel\/|@)/ },
+    { platform: "Facebook", regex: /facebook\.com\/(?!sharer)/ },
+    { platform: "GitHub", regex: /github\.com\/(?!login)/ },
+  ];
+  const found: SocialProfile[] = [];
+  const seen = new Set<string>();
+  for (const link of links) {
+    for (const { platform, regex } of patterns) {
+      if (regex.test(link) && !seen.has(platform)) {
+        seen.add(platform);
+        found.push({ platform, url: link });
+      }
+    }
+  }
+  return found;
+}
+
+function extractThumbnailUrl(page: ScrapedPage): string | undefined {
+  return page.metadata["og:image"] || page.metadata["twitter:image"] || undefined;
+}
+
+function findJobPages(links: string[], baseUrl: string): string[] {
+  const base = new URL(baseUrl);
+  const patterns = [/careers?/i, /jobs?/i, /hiring/i, /openings/i, /positions/i];
+  const found: string[] = [];
+  for (const link of links) {
+    try {
+      const u = new URL(link);
+      if (u.hostname !== base.hostname) continue;
+      if (patterns.some((p) => p.test(u.pathname))) {
+        if (!found.includes(link)) found.push(link);
+      }
+    } catch {}
+  }
+  return found.slice(0, 5);
+}
+
+export async function scrapeWebsite(url: string, depth: number = 1): Promise<ScrapedSite> {
   const mainPage = await fetchPage(url);
+  const allLinks = [...mainPage.links];
   const subPageUrls = findSubPages(mainPage.links, url);
 
   const subPages: ScrapedPage[] = [];
+  const visited = new Set<string>([url]);
+
+  // Depth 1: scrape subPages normally
   for (const subUrl of subPageUrls) {
+    if (visited.has(subUrl)) continue;
+    visited.add(subUrl);
     try {
-      subPages.push(await fetchPage(subUrl));
+      const page = await fetchPage(subUrl);
+      subPages.push(page);
+      allLinks.push(...page.links);
     } catch {}
   }
 
+  // Additional depth levels
+  if (depth > 1) {
+    let frontier = subPages.flatMap(p => p.links).filter(l => {
+      try { return new URL(l).hostname === new URL(url).hostname; } catch { return false; }
+    });
+    for (let d = 2; d <= depth && frontier.length > 0; d++) {
+      const nextFrontier: string[] = [];
+      for (const link of frontier.slice(0, 10)) {
+        if (visited.has(link)) continue;
+        visited.add(link);
+        try {
+          const page = await fetchPage(link);
+          subPages.push(page);
+          allLinks.push(...page.links);
+          nextFrontier.push(...page.links);
+        } catch {}
+      }
+      frontier = nextFrontier.filter(l => {
+        try { return new URL(l).hostname === new URL(url).hostname; } catch { return false; }
+      });
+    }
+  }
+
+  // Find job pages
+  const jobPageUrls = findJobPages(allLinks, url);
+  const jobPages: ScrapedPage[] = [];
+  for (const jobUrl of jobPageUrls) {
+    if (visited.has(jobUrl)) continue;
+    visited.add(jobUrl);
+    try {
+      jobPages.push(await fetchPage(jobUrl));
+    } catch {}
+  }
+
+  const socialProfiles = extractSocialProfiles(allLinks);
+  const thumbnailUrl = extractThumbnailUrl(mainPage);
   const hostname = new URL(url).hostname.replace(/^www\./, "");
   const name = mainPage.title.split(/[|\-–—]/).at(0)?.trim() || hostname;
 
@@ -95,5 +189,8 @@ export async function scrapeWebsite(url: string): Promise<ScrapedSite> {
     industry: "",
     mainPage,
     subPages,
+    socialProfiles,
+    thumbnailUrl,
+    jobPages,
   };
 }

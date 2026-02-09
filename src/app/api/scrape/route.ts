@@ -6,10 +6,10 @@ import { extractAll } from "@/lib/extraction";
 
 export async function POST(req: NextRequest) {
   try {
-    const { url } = await req.json();
+    const { url, depth } = await req.json();
     if (!url) return NextResponse.json({ error: "URL required" }, { status: 400 });
 
-    const scraped = await scrapeWebsite(url);
+    const scraped = await scrapeWebsite(url, Math.min(Math.max(depth || 1, 1), 5));
 
     // Combine all text for extraction
     const allText = [scraped.mainPage.text, ...scraped.subPages.map((p) => p.text)].join("\n\n");
@@ -27,8 +27,18 @@ export async function POST(req: NextRequest) {
         industry: scraped.industry,
         is_mine: false,
         scraped_at: new Date().toISOString(),
+        thumbnail_url: scraped.thumbnailUrl || "",
       })
     );
+
+    // Store social profiles
+    for (const sp of scraped.socialProfiles) {
+      const spId = id();
+      await db.transact([
+        db.tx.social_profiles[spId].update({ platform: sp.platform, url: sp.url, followers_count: sp.followers_count || 0 }),
+        db.tx.companies[companyId].link({ social_profiles: spId }),
+      ]);
+    }
 
     // Store features
     for (const f of extracted.features) {

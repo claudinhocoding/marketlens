@@ -18,6 +18,7 @@ const _schema = i.schema({
       industry: i.string().optional(),
       is_mine: i.boolean(),
       scraped_at: i.string().optional(),
+      thumbnail_url: i.string().optional(),
     }),
     features: i.entity({
       name: i.string(),
@@ -53,6 +54,11 @@ const _schema = i.schema({
       date: i.string().optional(),
       location: i.string().optional(),
       url: i.string().optional(),
+    }),
+    social_profiles: i.entity({
+      platform: i.string(),
+      followers_count: i.number().optional(),
+      url: i.string(),
     }),
     comparisons: i.entity({
       type: i.string(),
@@ -103,6 +109,10 @@ const _schema = i.schema({
     companyEvents: {
       forward: { on: "companies", has: "many", label: "events" },
       reverse: { on: "events", has: "one", label: "company" },
+    },
+    companySocialProfiles: {
+      forward: { on: "companies", has: "many", label: "social_profiles" },
+      reverse: { on: "social_profiles", has: "one", label: "company" },
     },
   },
   rooms: {},

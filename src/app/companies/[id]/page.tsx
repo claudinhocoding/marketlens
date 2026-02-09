@@ -3,6 +3,7 @@
 import { db } from "@/lib/db";
 import { useParams } from "next/navigation";
 import FeatureMatrix from "@/components/FeatureMatrix";
+import SocialFollowers from "@/components/SocialFollowers";
 
 export default function CompanyDetail() {
   const { id } = useParams<{ id: string }>();
@@ -15,6 +16,7 @@ export default function CompanyDetail() {
       product_intel: {},
       blog_posts: {},
       events: {},
+      social_profiles: {},
     },
   });
 
@@ -43,6 +45,11 @@ export default function CompanyDetail() {
         {company.description && <p className="text-sm mt-2">{company.description}</p>}
         {company.industry && <span className="inline-block mt-2 text-xs bg-border px-2 py-0.5 rounded">{company.industry}</span>}
       </div>
+
+      {/* Social Profiles */}
+      <Section title="Social Profiles">
+        <SocialFollowers profiles={company.social_profiles || []} />
+      </Section>
 
       {/* Features */}
       <Section title="Features">
