@@ -9,6 +9,17 @@ export default function ReportsPage() {
   const [reportType, setReportType] = useState("competitive_assessment");
   const [selected, setSelected] = useState<string | null>(null);
 
+  const downloadMd = (report: { title: string; type: string; content: string; created_at: string }) => {
+    const md = `# ${report.title}\n\n*Type: ${report.type} · Generated: ${new Date(report.created_at).toLocaleDateString()}*\n\n${report.content}`;
+    const blob = new Blob([md], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${report.title.toLowerCase().replace(/\s+/g, "-")}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   if (isLoading) return <div className="text-muted py-20 text-center">Loading…</div>;
   if (error) return <div className="text-danger py-20 text-center">Error: {error.message}</div>;
 
@@ -76,7 +87,12 @@ export default function ReportsPage() {
         <div className="lg:col-span-2">
           {selectedReport ? (
             <div className="bg-card border border-border rounded-lg p-6">
-              <h2 className="text-xl font-bold mb-1">{selectedReport.title}</h2>
+              <div className="flex items-center justify-between mb-1">
+                <h2 className="text-xl font-bold">{selectedReport.title}</h2>
+                <button onClick={() => downloadMd(selectedReport)} className="bg-card border border-border hover:border-accent/30 text-sm px-3 py-1.5 rounded-lg transition-colors">
+                  📥 Download .md
+                </button>
+              </div>
               <div className="text-xs text-muted mb-4">{selectedReport.type} · {new Date(selectedReport.created_at).toLocaleDateString()}</div>
               <div className="prose prose-invert prose-sm max-w-none whitespace-pre-wrap text-sm">
                 {selectedReport.content}
