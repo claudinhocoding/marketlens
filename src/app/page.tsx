@@ -133,7 +133,17 @@ export default function Dashboard() {
           <div className="bg-card border border-border rounded-lg p-5 mb-8">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-medium">Add a company to track</h3>
-              <span className="text-xs text-muted">{companies.length} / {maxSites} sites used</span>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-24 h-2 bg-border rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all ${companies.length >= maxSites ? "bg-danger" : companies.length >= maxSites * 0.8 ? "bg-warning" : "bg-accent"}`}
+                      style={{ width: `${Math.min((companies.length / maxSites) * 100, 100)}%` }}
+                    />
+                  </div>
+                  <span className={`text-xs font-medium ${companies.length >= maxSites ? "text-danger" : "text-muted"}`}>{companies.length} / {maxSites} sites used</span>
+                </div>
+              </div>
             </div>
             <div className="flex gap-3">
               <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://competitor.com" className="flex-1 bg-background border border-border rounded-lg px-4 py-2 text-sm outline-none focus:border-accent" />
