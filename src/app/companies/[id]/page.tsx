@@ -1,7 +1,7 @@
 "use client";
 
 import { db } from "@/lib/db";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import FeatureMatrix from "@/components/FeatureMatrix";
 import SocialFollowers from "@/components/SocialFollowers";
@@ -11,7 +11,9 @@ type Tab = "overview" | "product" | "marketing";
 
 export default function CompanyDetail() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const [tab, setTab] = useState<Tab>("overview");
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const { isLoading, error, data } = db.useQuery({
     companies: {
       $: { where: { id } },
@@ -50,9 +52,37 @@ export default function CompanyDetail() {
   return (
     <div>
       <div className="mb-6">
-        <div className="flex items-center gap-3 mb-2">
-          <h1 className="text-2xl font-bold">{company.name}</h1>
-          {company.is_mine && <span className="text-xs bg-accent/20 text-accent px-2 py-0.5 rounded-full">Your Company</span>}
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold">{company.name}</h1>
+            {company.is_mine && <span className="text-xs bg-accent/20 text-accent px-2 py-0.5 rounded-full">Your Company</span>}
+          </div>
+          <div>
+            {confirmDelete ? (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-danger">Delete this company?</span>
+                <button onClick={() => {
+                  const txns = [
+                    db.tx.companies[id].delete(),
+                    ...(company.features || []).map((f: { id: string }) => db.tx.features[f.id].delete()),
+                    ...(company.pricing_tiers || []).map((p: { id: string }) => db.tx.pricing_tiers[p.id].delete()),
+                    ...(company.marketing_intel || []).map((m: { id: string }) => db.tx.marketing_intel[m.id].delete()),
+                    ...(company.product_intel || []).map((p: { id: string }) => db.tx.product_intel[p.id].delete()),
+                    ...(company.blog_posts || []).map((b: { id: string }) => db.tx.blog_posts[b.id].delete()),
+                    ...(company.events || []).map((e: { id: string }) => db.tx.events[e.id].delete()),
+                    ...(company.social_profiles || []).map((s: { id: string }) => db.tx.social_profiles[s.id].delete()),
+                    ...(company.contacts || []).map((c: { id: string }) => db.tx.contacts[c.id].delete()),
+                    ...(company.job_listings || []).map((j: { id: string }) => db.tx.job_listings[j.id].delete()),
+                  ];
+                  db.transact(txns);
+                  router.push("/");
+                }} className="bg-danger hover:bg-red-700 text-white text-sm px-3 py-1.5 rounded-lg">Yes, delete</button>
+                <button onClick={() => setConfirmDelete(false)} className="bg-border text-foreground text-sm px-3 py-1.5 rounded-lg">Cancel</button>
+              </div>
+            ) : (
+              <button onClick={() => setConfirmDelete(true)} className="text-muted hover:text-danger text-sm px-3 py-1.5 border border-border hover:border-danger rounded-lg transition-colors">🗑 Delete</button>
+            )}
+          </div>
         </div>
         <p className="text-muted text-sm">{company.url}</p>
         {company.description && <p className="text-sm mt-2">{company.description}</p>}
