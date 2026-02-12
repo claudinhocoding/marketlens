@@ -59,6 +59,31 @@ npx tsx scripts/push-schema.ts
 npm run dev
 ```
 
+## API Smoke Tests
+
+These scripts validate backend/API behavior (not UI rendering) by calling each route and checking response shapes.
+
+```bash
+# Run all API smoke tests
+npm run test:api
+
+# Run individual endpoint suites
+npm run test:api:scrape
+npm run test:api:extract
+npm run test:api:compare
+npm run test:api:report
+npm run test:api:chat
+```
+
+Optional environment overrides:
+
+- `API_BASE_URL` (default: `http://localhost:4001`)
+- `API_TEST_URL` (default: `https://example.com`)
+- `API_TEST_DEPTH` (default: `1`)
+- `API_TEST_COMPANY_ID` (reuse an existing company for extract/report tests)
+- `API_TEST_TIMEOUT_MS` (default: `240000`)
+- `API_TEST_CHAT_MESSAGE` (custom prompt for chat test)
+
 ## TypeScript Modules
 
 The TypeScript backend modules handle scraping and AI-powered analysis:
