@@ -2,7 +2,7 @@
 
 ## Metadata
 - Spec File: `2026-02-12_api-feature-validation-scripts.md`
-- Status: `In Progress`
+- Status: `Ready for Review`
 - Owner: `itsttm@gmail.com`
 - Reviewer Subagent: 
 - Branch: `main`
@@ -37,21 +37,21 @@ The README still references Python backend modules that no longer exist in this 
 
 ## Testing Criteria (Required)
 ### Automated Checks
-- [ ] Lint passes (`npm run lint`)
-- [ ] Build/compile passes (`npm run build`)
-- [ ] API smoke tests run (`npm run test:api`)
+- [ ] Lint passes (`npm run lint`) *(blocked: Next.js prompted for initial ESLint setup because no ESLint config exists yet)*
+- [x] Build/compile passes (`npm run build`)
+- [x] API smoke tests run (`npm run test:api`)
 
 ### Manual Verification
-- [ ] README no longer claims Python backend modules exist.
-- [ ] `npm run test:api:scrape` validates scrape endpoint response shape.
-- [ ] `npm run test:api:extract` validates extraction endpoint response shape.
-- [ ] `npm run test:api:compare` validates comparison endpoint response shape for all modes.
-- [ ] `npm run test:api:report` validates report endpoint response shape for all report types.
-- [ ] `npm run test:api:chat` validates chat endpoint response shape.
+- [x] README no longer claims Python backend modules exist.
+- [x] `npm run test:api:scrape` validates scrape endpoint response shape.
+- [x] `npm run test:api:extract` validates extraction endpoint response shape.
+- [x] `npm run test:api:compare` validates comparison endpoint response shape for all modes.
+- [x] `npm run test:api:report` validates report endpoint response shape for all report types.
+- [x] `npm run test:api:chat` validates chat endpoint response shape.
 
 ### Evidence
-- [ ] Test output captured in session notes
-- [ ] Any failures include endpoint + status + response excerpt
+- [x] Test output captured in session notes
+- [x] Any failures include endpoint + status + response excerpt
 
 ## Tasks
 ```json
@@ -60,17 +60,17 @@ The README still references Python backend modules that no longer exist in this 
     "createdTimestamp": "2026-02-12T20:01:00Z",
     "name": "Remove outdated Python references from README",
     "description": "Update README architecture and setup docs to reflect the TypeScript-only backend implementation.",
-    "status": "pending",
-    "completionTimestamp": "",
-    "commitHash": ""
+    "status": "completed",
+    "completionTimestamp": "2026-02-12T20:06:00Z",
+    "commitHash": "0d5bf9f"
   },
   {
     "createdTimestamp": "2026-02-12T20:02:00Z",
     "name": "Add API smoke-test scripts for core features",
     "description": "Create endpoint-level scripts and npm commands to validate API responses for scrape, extract, compare, report, and chat.",
-    "status": "pending",
-    "completionTimestamp": "",
-    "commitHash": ""
+    "status": "completed",
+    "completionTimestamp": "2026-02-12T20:24:00Z",
+    "commitHash": "b5031db"
   }
 ]
 ```
@@ -80,3 +80,6 @@ The README still references Python backend modules that no longer exist in this 
 
 ## Implementation Notes
 - 2026-02-12: Spec initialized.
+- 2026-02-12: Updated README to remove outdated Python architecture/setup/module references.
+- 2026-02-12: Added API smoke-test suite scripts for scrape, extract, compare, report, and chat routes with response-shape assertions.
+- 2026-02-12: Validation run succeeded via `npm run test:api` against local dev server (`npm run dev`).
