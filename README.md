@@ -1,14 +1,14 @@
 # MarketLens — Competitive Intelligence Platform
 
-AI-powered competitive intelligence platform built with **Next.js 15**, **InstantDB**, and **Tailwind CSS**, with Python-based scraping and Claude-powered analysis.
+AI-powered competitive intelligence platform built with **Next.js 15**, **InstantDB**, and **Tailwind CSS**, with TypeScript-based scraping and Claude-powered analysis.
 
 ## Architecture
 
 - **Frontend**: Next.js 15 (App Router) + InstantDB (real-time) + Tailwind CSS (dark mode)
-- **Backend**: Next.js API routes that call Python modules via subprocess
+- **Backend**: Next.js API routes + TypeScript service modules in `src/lib`
 - **AI**: Claude API for extraction, analysis, comparison, and agent chat
 - **Database**: InstantDB (real-time, schema-driven)
-- **Scraping**: Python (Playwright-based crawler)
+- **Scraping**: TypeScript + Cheerio-based website crawler
 
 ## Pages
 
@@ -47,7 +47,6 @@ AI-powered competitive intelligence platform built with **Next.js 15**, **Instan
 ```bash
 # Install dependencies
 npm install
-pip install -r requirements.txt
 
 # Copy environment variables
 cp .env.example .env
@@ -60,12 +59,12 @@ npx tsx scripts/push-schema.ts
 npm run dev
 ```
 
-## Python Modules
+## TypeScript Modules
 
-The Python backend modules handle scraping and AI-powered analysis:
+The TypeScript backend modules handle scraping and AI-powered analysis:
 
-- `src/scraper/` — Website crawling (Playwright)
-- `src/extraction/` — Claude-powered data extraction
-- `src/analysis/` — Competitive comparison and targeting matrix
-- `src/reports/` — Report generation
-- `src/agent/` — AI agent for natural language queries
+- `src/lib/scraper.ts` — Website crawling and metadata extraction
+- `src/lib/extraction.ts` — Claude-powered structured data extraction
+- `src/lib/analysis.ts` — Competitive comparison and targeting analysis
+- `src/lib/reports.ts` — Report and assessment generation
+- `src/lib/agent.ts` — AI agent query handling
