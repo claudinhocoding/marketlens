@@ -33,8 +33,10 @@ const categoryBarColors: Record<string, string> = {
 export default function PainPointsAnalysis({ companyCount }: PainPointsAnalysisProps) {
   const [painPoints, setPainPoints] = useState<PainPoint[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const analyze = async () => {
+    setError(null);
     setLoading(true);
     try {
       const res = await fetch("/api/compare", {
@@ -42,11 +44,18 @@ export default function PainPointsAnalysis({ companyCount }: PainPointsAnalysisP
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ type: "pain_points" }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to analyze pain points.");
+      }
       if (data.comparison?.painPoints?.pain_points) {
         setPainPoints(data.comparison.painPoints.pain_points);
+      } else {
+        setPainPoints([]);
       }
-    } catch {} finally {
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to analyze pain points.");
+    } finally {
       setLoading(false);
     }
   };
@@ -68,6 +77,8 @@ export default function PainPointsAnalysis({ companyCount }: PainPointsAnalysisP
           {loading ? "Analyzing…" : "Analyze Pain Points"}
         </button>
       </div>
+
+      {error && <p className="text-danger text-sm mb-4">{error}</p>}
 
       {painPoints.length === 0 ? (
         <p className="text-muted text-sm">Click Analyze to identify pain points across companies.</p>

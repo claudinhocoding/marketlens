@@ -111,30 +111,28 @@ export default function FeatureMatrix({ features, companies, onRefresh }: Featur
             </tr>
           </thead>
           <tbody>
-            {featuresByCategory.map(({ category, features: featureNames }) => (
-              <>
-                <tr key={category}>
-                  <td colSpan={companies.length + 1} className="py-2 px-4 text-xs font-semibold text-accent uppercase tracking-wider bg-card">
-                    {category}
-                  </td>
+            {featuresByCategory.flatMap(({ category, features: featureNames }) => [
+              <tr key={`cat-${category}`}>
+                <td colSpan={companies.length + 1} className="py-2 px-4 text-xs font-semibold text-accent uppercase tracking-wider bg-card">
+                  {category}
+                </td>
+              </tr>,
+              ...featureNames.map((fname) => (
+                <tr key={`${category}-${fname}`} className="border-b border-border/50 hover:bg-card-hover">
+                  <td className="py-2 px-4">{fname}</td>
+                  {companies.map((c) => {
+                    const f = features.find((ff) => ff.name === fname && ff.company?.id === c.id);
+                    const status = getStatus(!!f, f?.status);
+                    const cfg = statusConfig[status];
+                    return (
+                      <td key={c.id} className={`text-center py-2 px-4 ${cfg.className}`}>
+                        {cfg.icon}
+                      </td>
+                    );
+                  })}
                 </tr>
-                {featureNames.map((fname) => (
-                  <tr key={fname} className="border-b border-border/50 hover:bg-card-hover">
-                    <td className="py-2 px-4">{fname}</td>
-                    {companies.map((c) => {
-                      const f = features.find((ff) => ff.name === fname && ff.company?.id === c.id);
-                      const status = getStatus(!!f, f?.status);
-                      const cfg = statusConfig[status];
-                      return (
-                        <td key={c.id} className={`text-center py-2 px-4 ${cfg.className}`}>
-                          {cfg.icon}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
-              </>
-            ))}
+              )),
+            ])}
           </tbody>
         </table>
       </div>

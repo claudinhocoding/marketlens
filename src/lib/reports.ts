@@ -26,6 +26,33 @@ export async function generateCompetitiveReport(companies: CompanyData[]) {
   };
 }
 
+export async function generateFeatureGapReport(
+  companies: CompanyData[],
+  myCompany?: CompanyData
+) {
+  const focus = myCompany || companies[0];
+  const competitors = companies.filter((c) => c.name !== focus?.name);
+  const content = await askClaude(
+    "You are a competitive intelligence analyst writing a feature gap report in markdown.",
+    `Write a feature gap analysis report for \"${focus?.name || "the primary company"}\" against competitors. Include sections: Summary, Critical Feature Gaps, Nice-to-Have Gaps, Competitive Risks, Roadmap Priorities (30/60/90 days), and Recommended Experiments.\n\nPrimary company:\n${JSON.stringify(focus, null, 2)}\n\nCompetitors:\n${JSON.stringify(competitors, null, 2)}`
+  );
+  return {
+    title: `Feature Gap Analysis${focus?.name ? `: ${focus.name}` : ""}`,
+    content,
+  };
+}
+
+export async function generateMarketPositioningReport(companies: CompanyData[]) {
+  const content = await askClaude(
+    "You are a market strategist writing a positioning report in markdown.",
+    `Write a market positioning report for these companies. Include sections: Category Narrative, Positioning by Company, Messaging Opportunities, Whitespace Opportunities, Risks, and Suggested Positioning Statements.\n\nCompanies:\n${JSON.stringify(companies, null, 2)}`
+  );
+  return {
+    title: "Market Positioning Report",
+    content,
+  };
+}
+
 export async function generateAssessment(company: CompanyData) {
   const content = await askClaude(
     "You are a competitive intelligence analyst. Return JSON only.",

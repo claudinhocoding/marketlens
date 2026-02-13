@@ -18,6 +18,7 @@ export default function Dashboard() {
   const [showNewColl, setShowNewColl] = useState(false);
   const [selectedCollection, setSelectedCollection] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [scrapeError, setScrapeError] = useState<string | null>(null);
 
   const handleShare = async () => {
     const url = window.location.href;
@@ -43,8 +44,6 @@ export default function Dashboard() {
 
   const companies = data.companies || [];
   const collections = data.collections || [];
-  const mine = companies.filter((c) => c.is_mine);
-  const competitors = companies.filter((c) => !c.is_mine);
 
   const filteredCompanies = selectedCollection
     ? companies.filter((c) => c.collections?.some((col) => col.id === selectedCollection))
@@ -54,16 +53,23 @@ export default function Dashboard() {
 
   const handleScrape = async () => {
     if (!url.trim()) return;
+    setScrapeError(null);
     setScraping(true);
     try {
-      await fetch("/api/scrape", {
+      const res = await fetch("/api/scrape", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: url.trim(), depth }),
       });
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(payload.error || "Failed to scrape website.");
+      }
       setUrl("");
       setShowAdd(false);
-    } catch {} finally {
+    } catch (err) {
+      setScrapeError(err instanceof Error ? err.message : "Failed to scrape website.");
+    } finally {
       setScraping(false);
     }
   };
@@ -82,6 +88,17 @@ export default function Dashboard() {
 
   const removeFromCollection = (collectionId: string, companyId: string) => {
     db.transact(db.tx.collections[collectionId].unlink({ companies: companyId }));
+  };
+
+  const setPrimaryCompany = (companyId: string) => {
+    const txns = companies.map((company) =>
+      db.tx.companies[company.id].update({ is_mine: company.id === companyId })
+    );
+    db.transact(txns);
+  };
+
+  const unsetPrimaryCompany = (companyId: string) => {
+    db.transact(db.tx.companies[companyId].update({ is_mine: false }));
   };
 
   const maxSites = parseInt(process.env.NEXT_PUBLIC_MAX_SITES || "10", 10);
@@ -156,6 +173,7 @@ export default function Dashboard() {
                 {scraping ? "Scraping…" : "Scrape & Add"}
               </button>
             </div>
+            {scrapeError && <p className="text-danger text-xs mt-3">{scrapeError}</p>}
           </div>
         )}
 
@@ -176,6 +194,12 @@ export default function Dashboard() {
           ))}
         </div>
 
+        {companies.length > 0 && filteredMine.length === 0 && (
+          <div className="mb-6 bg-card border border-border rounded-lg p-4 text-sm text-muted">
+            No primary company selected yet. Use <span className="text-accent">⭐ Set as Primary</span> on a company card to define your baseline.
+          </div>
+        )}
+
         {/* Collection assignment dropdown for each company */}
         {filteredMine.length > 0 && (
           <div className="mb-8">
@@ -184,18 +208,23 @@ export default function Dashboard() {
               {filteredMine.map((c) => (
                 <div key={c.id}>
                   <CompanyCard {...c} featureCount={c.features?.length} thumbnailUrl={c.thumbnail_url} />
-                  {collections.length > 0 && (
-                    <div className="mt-1 flex gap-1 flex-wrap">
-                      {collections.map((col) => {
-                        const inCol = col.companies?.some((cc) => cc.id === c.id);
-                        return (
-                          <button key={col.id} onClick={() => inCol ? removeFromCollection(col.id, c.id) : addToCollection(col.id, c.id)} className={`text-xs px-2 py-0.5 rounded transition-colors ${inCol ? "bg-accent text-white" : "bg-border text-muted hover:text-foreground"}`}>
-                            {col.name}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
+                  <div className="mt-1 flex gap-1 flex-wrap items-center">
+                    <span className="text-xs px-2 py-0.5 rounded bg-accent/20 text-accent">✅ Primary</span>
+                    <button
+                      onClick={() => unsetPrimaryCompany(c.id)}
+                      className="text-xs px-2 py-0.5 rounded bg-border text-muted hover:text-foreground transition-colors"
+                    >
+                      Unset
+                    </button>
+                    {collections.map((col) => {
+                      const inCol = col.companies?.some((cc) => cc.id === c.id);
+                      return (
+                        <button key={col.id} onClick={() => inCol ? removeFromCollection(col.id, c.id) : addToCollection(col.id, c.id)} className={`text-xs px-2 py-0.5 rounded transition-colors ${inCol ? "bg-accent text-white" : "bg-border text-muted hover:text-foreground"}`}>
+                          {col.name}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               ))}
             </div>
@@ -211,18 +240,22 @@ export default function Dashboard() {
               {filteredCompetitors.map((c) => (
                 <div key={c.id}>
                   <CompanyCard {...c} featureCount={c.features?.length} thumbnailUrl={c.thumbnail_url} />
-                  {collections.length > 0 && (
-                    <div className="mt-1 flex gap-1 flex-wrap">
-                      {collections.map((col) => {
-                        const inCol = col.companies?.some((cc) => cc.id === c.id);
-                        return (
-                          <button key={col.id} onClick={() => inCol ? removeFromCollection(col.id, c.id) : addToCollection(col.id, c.id)} className={`text-xs px-2 py-0.5 rounded transition-colors ${inCol ? "bg-accent text-white" : "bg-border text-muted hover:text-foreground"}`}>
-                            {col.name}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
+                  <div className="mt-1 flex gap-1 flex-wrap items-center">
+                    <button
+                      onClick={() => setPrimaryCompany(c.id)}
+                      className="text-xs px-2 py-0.5 rounded bg-accent text-white hover:bg-accent-hover transition-colors"
+                    >
+                      ⭐ Set as Primary
+                    </button>
+                    {collections.map((col) => {
+                      const inCol = col.companies?.some((cc) => cc.id === c.id);
+                      return (
+                        <button key={col.id} onClick={() => inCol ? removeFromCollection(col.id, c.id) : addToCollection(col.id, c.id)} className={`text-xs px-2 py-0.5 rounded transition-colors ${inCol ? "bg-accent text-white" : "bg-border text-muted hover:text-foreground"}`}>
+                          {col.name}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               ))}
             </div>
