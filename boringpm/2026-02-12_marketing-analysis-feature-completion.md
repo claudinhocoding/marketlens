@@ -61,15 +61,15 @@ Deliver a focused feature-completion pass that:
     "description": "Implement feature_gap + market_positioning report generation backend support and align Reports UI options with supported report modes.",
     "status": "completed",
     "completionTimestamp": "2026-02-13T01:29:00Z",
-    "commitHash": "98dd9af"
+    "commitHash": "3269bfa"
   },
   {
     "createdTimestamp": "2026-02-13T01:24:00Z",
     "name": "Extend extraction coverage and persistence",
     "description": "Add blog post and events extraction, and persist these entities in scrape/extract flows.",
-    "status": "pending",
-    "completionTimestamp": "",
-    "commitHash": ""
+    "status": "completed",
+    "completionTimestamp": "2026-02-13T01:54:00Z",
+    "commitHash": "PENDING"
   },
   {
     "createdTimestamp": "2026-02-13T01:24:00Z",
@@ -105,3 +105,4 @@ Deliver a focused feature-completion pass that:
 - 2026-02-12: Ran planner/scout/reviewer subagents to identify release gaps and prioritize implementation.
 - 2026-02-12: Started feature-completion implementation branch and initialized BoringPM spec.
 - 2026-02-12: Completed report contract parity by implementing feature gap + market positioning generators and exposing market overview in Reports UI.
+- 2026-02-12: Added blog post/event extraction and persisted blog/events/contacts/social/jobs in extract/scrape ingestion paths.

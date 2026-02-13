@@ -96,6 +96,34 @@ export async function POST(req: NextRequest) {
       ]);
     }
 
+    // Store blog posts
+    for (const p of extracted.blog_posts || []) {
+      const bid = id();
+      await db.transact([
+        db.tx.blog_posts[bid].update({
+          title: p.title,
+          url: p.url || "",
+          date: p.date || "",
+          summary: p.summary || "",
+        }),
+        db.tx.companies[companyId].link({ blog_posts: bid }),
+      ]);
+    }
+
+    // Store events
+    for (const e of extracted.events || []) {
+      const eid = id();
+      await db.transact([
+        db.tx.events[eid].update({
+          name: e.name,
+          date: e.date || "",
+          location: e.location || "",
+          url: e.url || "",
+        }),
+        db.tx.companies[companyId].link({ events: eid }),
+      ]);
+    }
+
     // Store product intel
     if (extracted.product) {
       const pid = id();
