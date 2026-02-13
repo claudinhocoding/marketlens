@@ -55,6 +55,7 @@ export default function ReportsPage() {
             <option value="competitive_assessment">Competitive Assessment</option>
             <option value="feature_gap">Feature Gap Analysis</option>
             <option value="market_positioning">Market Positioning</option>
+            <option value="market_overview">Market Overview</option>
           </select>
           <button onClick={generate} disabled={generating} className="bg-accent hover:bg-accent-hover disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium">
             {generating ? "Generating…" : "Generate Report"}

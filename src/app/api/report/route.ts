@@ -1,12 +1,49 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/admin-db";
 import { id } from "@instantdb/admin";
-import { generateCompetitiveReport, generateMarketOverview } from "@/lib/reports";
+import {
+  generateCompetitiveReport,
+  generateFeatureGapReport,
+  generateMarketOverview,
+  generateMarketPositioningReport,
+} from "@/lib/reports";
 import type { CompanyData } from "@/lib/analysis";
+
+type RawCompany = Record<string, unknown>;
+
+function mapCompany(c: RawCompany): CompanyData {
+  return {
+    name: c.name as string,
+    is_mine: Boolean(c.is_mine),
+    features: (c.features as { name: string; category?: string; description?: string }[]) || [],
+    pricing_tiers: (c.pricing_tiers as { name: string; price?: string }[]) || [],
+    marketing_intel: (() => {
+      const mi = (c.marketing_intel as Record<string, string>[] | undefined)?.[0];
+      if (!mi) return undefined;
+      try {
+        return {
+          value_props: JSON.parse(mi.value_props || "[]"),
+          target_personas: JSON.parse(mi.target_personas || "[]"),
+          differentiators: JSON.parse(mi.differentiators || "[]"),
+        };
+      } catch {
+        return undefined;
+      }
+    })(),
+    product_intel: (() => {
+      const pi = (c.product_intel as Record<string, string>[] | undefined)?.[0];
+      if (!pi) return undefined;
+      return { feature_summary: pi.feature_summary, positioning: pi.positioning };
+    })(),
+  };
+}
 
 export async function POST(req: NextRequest) {
   try {
-    const { type, companyId } = await req.json();
+    const body = await req.json().catch(() => ({}));
+    const type = typeof body.type === "string" ? body.type : "competitive_assessment";
+    const companyId = typeof body.companyId === "string" ? body.companyId : undefined;
+
     const db = getAdminDb();
 
     const data = await db.query({
@@ -18,47 +55,48 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    const companies: CompanyData[] = (data.companies || []).map((c: Record<string, unknown>) => ({
-      name: c.name as string,
-      features: (c.features as { name: string; category?: string; description?: string }[]) || [],
-      pricing_tiers: (c.pricing_tiers as { name: string; price?: string }[]) || [],
-      marketing_intel: (() => {
-        const mi = (c.marketing_intel as Record<string, string>[] | undefined)?.[0];
-        if (!mi) return undefined;
-        try {
-          return {
-            value_props: JSON.parse(mi.value_props || "[]"),
-            target_personas: JSON.parse(mi.target_personas || "[]"),
-            differentiators: JSON.parse(mi.differentiators || "[]"),
-          };
-        } catch { return undefined; }
-      })(),
-      product_intel: (() => {
-        const pi = (c.product_intel as Record<string, string>[] | undefined)?.[0];
-        if (!pi) return undefined;
-        return { feature_summary: pi.feature_summary, positioning: pi.positioning };
-      })(),
-    }));
+    const rawCompanies = (data.companies || []) as RawCompany[];
+    const companies: CompanyData[] = rawCompanies.map(mapCompany);
+
+    if (companies.length === 0) {
+      return NextResponse.json({ error: "No companies available to generate a report." }, { status: 400 });
+    }
 
     let report;
-    if (type === "assessment" && companyId) {
-      const { generateAssessment } = await import("@/lib/reports");
-      const target = companies.find((c: CompanyData) => {
-        const match = (data.companies || []).find((dc: Record<string, unknown>) => dc.id === companyId);
-        return match && (match as Record<string, unknown>).name === c.name;
-      }) || companies[0];
-      report = target ? await generateAssessment(target) : await generateCompetitiveReport(companies);
+
+    if (type === "assessment") {
+      const targetRaw = rawCompanies.find((c) => c.id === companyId) || rawCompanies[0];
+      report = await import("@/lib/reports").then(({ generateAssessment }) =>
+        generateAssessment(mapCompany(targetRaw))
+      );
     } else {
-      report = type === "market_overview"
-        ? await generateMarketOverview(companies)
-        : await generateCompetitiveReport(companies);
+      switch (type) {
+        case "market_overview":
+          report = await generateMarketOverview(companies);
+          break;
+        case "feature_gap": {
+          const focusRaw =
+            rawCompanies.find((c) => c.id === companyId) ||
+            rawCompanies.find((c) => Boolean(c.is_mine)) ||
+            rawCompanies[0];
+          report = await generateFeatureGapReport(companies, mapCompany(focusRaw));
+          break;
+        }
+        case "market_positioning":
+          report = await generateMarketPositioningReport(companies);
+          break;
+        case "competitive_assessment":
+        default:
+          report = await generateCompetitiveReport(companies);
+          break;
+      }
     }
 
     const rid = id();
     await db.transact(
       db.tx.reports[rid].update({
         title: report.title,
-        type: type || "competitive_assessment",
+        type,
         content: report.content,
         created_at: new Date().toISOString(),
       })
