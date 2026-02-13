@@ -8,6 +8,7 @@ export default function ReportsPage() {
   const [generating, setGenerating] = useState(false);
   const [reportType, setReportType] = useState("competitive_assessment");
   const [selected, setSelected] = useState<string | null>(null);
+  const [reportError, setReportError] = useState<string | null>(null);
 
   const downloadMd = (report: { title: string; type: string; content: string; created_at: string }) => {
     const md = `# ${report.title}\n\n*Type: ${report.type} · Generated: ${new Date(report.created_at).toLocaleDateString()}*\n\n${report.content}`;
@@ -27,14 +28,24 @@ export default function ReportsPage() {
   const selectedReport = selected ? reports.find((r) => r.id === selected) : null;
 
   const generate = async () => {
+    setReportError(null);
     setGenerating(true);
     try {
-      await fetch("/api/report", {
+      const res = await fetch("/api/report", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ type: reportType }),
       });
-    } catch {} finally {
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(payload.error || "Failed to generate report.");
+      }
+      if (payload.reportId) {
+        setSelected(payload.reportId);
+      }
+    } catch (err) {
+      setReportError(err instanceof Error ? err.message : "Failed to generate report.");
+    } finally {
       setGenerating(false);
     }
   };
@@ -63,12 +74,14 @@ export default function ReportsPage() {
         </div>
       </div>
 
+      {reportError && <p className="text-danger text-sm mb-4">{reportError}</p>}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="space-y-2">
           {reports.length === 0 ? (
             <p className="text-muted text-sm">No reports yet. Generate one!</p>
           ) : (
-            reports.sort((a, b) => b.created_at.localeCompare(a.created_at)).map((r) => (
+            [...reports].sort((a, b) => b.created_at.localeCompare(a.created_at)).map((r) => (
               <button
                 key={r.id}
                 onClick={() => setSelected(r.id)}

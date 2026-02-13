@@ -26,8 +26,10 @@ const ratingColors: Record<string, string> = {
 export default function TargetingMatrix({ companies }: TargetingMatrixProps) {
   const [data, setData] = useState<MatrixData | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const analyze = async () => {
+    setError(null);
     setLoading(true);
     try {
       const res = await fetch("/api/compare", {
@@ -35,11 +37,18 @@ export default function TargetingMatrix({ companies }: TargetingMatrixProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ type: "targeting_matrix" }),
       });
-      const json = await res.json();
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(json.error || "Failed to generate targeting matrix.");
+      }
       if (json.comparison?.targetingMatrix) {
         setData(json.comparison.targetingMatrix);
+      } else {
+        setData(null);
       }
-    } catch {} finally {
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to generate targeting matrix.");
+    } finally {
       setLoading(false);
     }
   };
@@ -52,6 +61,8 @@ export default function TargetingMatrix({ companies }: TargetingMatrixProps) {
           {loading ? "Analyzing…" : "Analyze Verticals"}
         </button>
       </div>
+
+      {error && <p className="text-danger text-sm mb-4">{error}</p>}
 
       {!data ? (
         <p className="text-muted text-sm">Click Analyze to generate targeting matrix.</p>

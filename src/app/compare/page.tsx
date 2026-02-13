@@ -16,6 +16,7 @@ export default function ComparePage() {
   const [running, setRunning] = useState(false);
   const [tab, setTab] = useState<"features" | "marketing" | "saved">("features");
   const [selectedMyCompanyId, setSelectedMyCompanyId] = useState("");
+  const [compareError, setCompareError] = useState<string | null>(null);
 
   if (isLoading) return <div className="text-muted py-20 text-center">Loading…</div>;
   if (error) return <div className="text-danger py-20 text-center">Error: {error.message}</div>;
@@ -46,14 +47,21 @@ export default function ComparePage() {
   );
 
   const runComparison = async () => {
+    setCompareError(null);
     setRunning(true);
     try {
-      await fetch("/api/compare", {
+      const res = await fetch("/api/compare", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ myCompanyId: baselineCompany?.id || null }),
       });
-    } catch {} finally {
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(payload.error || "Failed to run comparison.");
+      }
+    } catch (err) {
+      setCompareError(err instanceof Error ? err.message : "Failed to run comparison.");
+    } finally {
       setRunning(false);
     }
   };
@@ -92,6 +100,8 @@ export default function ComparePage() {
           </button>
         </div>
       </div>
+
+      {compareError && <p className="text-danger text-sm mb-4">{compareError}</p>}
 
       <div className="flex gap-1 mb-3 bg-card border border-border rounded-lg p-1">
         {tabs.map((t) => (

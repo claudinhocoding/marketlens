@@ -177,6 +177,23 @@ export async function testReport(ctx) {
   assert(hasText(competitive.report.title), "Expected report.title for competitive report");
   assert(hasText(competitive.report.content), "Expected report.content for competitive report");
 
+  const companyId = await ensureCompanyId(ctx);
+
+  const featureGap = await postJson(ctx, "/api/report", {
+    type: "feature_gap",
+    companyId,
+  });
+  assert(featureGap.success === true, "Expected success=true for feature gap report");
+  assert(hasText(featureGap.reportId), "Expected reportId for feature gap report");
+  assert(hasText(featureGap.report?.content), "Expected report.content for feature gap report");
+
+  const positioning = await postJson(ctx, "/api/report", {
+    type: "market_positioning",
+  });
+  assert(positioning.success === true, "Expected success=true for market positioning report");
+  assert(hasText(positioning.reportId), "Expected reportId for market positioning report");
+  assert(hasText(positioning.report?.content), "Expected report.content for market positioning report");
+
   const market = await postJson(ctx, "/api/report", {
     type: "market_overview",
   });
@@ -184,7 +201,6 @@ export async function testReport(ctx) {
   assert(hasText(market.reportId), "Expected reportId for market overview report");
   assert(hasText(market.report?.content), "Expected report.content for market overview report");
 
-  const companyId = await ensureCompanyId(ctx);
   const assessment = await postJson(ctx, "/api/report", {
     type: "assessment",
     companyId,
@@ -195,6 +211,8 @@ export async function testReport(ctx) {
 
   return {
     competitiveReportId: competitive.reportId,
+    featureGapReportId: featureGap.reportId,
+    marketPositioningReportId: positioning.reportId,
     marketOverviewReportId: market.reportId,
     assessmentReportId: assessment.reportId,
     companyId,

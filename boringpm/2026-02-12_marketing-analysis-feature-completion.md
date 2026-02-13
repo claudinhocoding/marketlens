@@ -2,12 +2,12 @@
 
 ## Metadata
 - Spec File: `2026-02-12_marketing-analysis-feature-completion.md`
-- Status: `In Progress`
+- Status: `Ready for Review`
 - Owner: `itsttm@gmail.com`
 - Reviewer Subagent: `reviewer`
 - Branch: `feat/marketing-analysis-completion`
 - PR: 
-- Last Updated: 2026-02-12
+- Last Updated: 2026-02-13
 
 ## Problem Statement
 MarketLens has strong foundations, but several core product gaps prevent it from behaving like a feature-complete marketing analysis platform. The biggest gaps are: mismatched report types between UI/API, missing ingestion for modeled entities (blog posts/events), non-idempotent extraction that causes duplicate records, weak baseline-company selection for gap analysis, and poor user feedback when API actions fail.
@@ -38,19 +38,19 @@ Deliver a focused feature-completion pass that:
 
 ## Testing Criteria (Required)
 ### Automated Checks
-- [ ] Build passes (`npm run build`)
-- [ ] API smoke tests pass (`API_TEST_URL=https://www.intercom.com npm run test:api`)
-- [ ] Report suite validates new report modes (`npm run test:api:report`)
+- [x] Build passes (`npm run build`)
+- [x] API smoke tests pass (`API_TEST_URL=https://www.intercom.com npm run test:api`)
+- [x] Report suite validates new report modes (`npm run test:api:report`)
 
 ### Manual Verification
-- [ ] Reports page exposes only implemented report types and each generates distinct content.
-- [ ] Re-running scrape/extract on the same company does not create duplicate feature/pricing/marketing/product/blog/event/contact records.
-- [ ] Company can be marked/unmarked as “Your Company”, and compare baseline selection influences gap analysis.
-- [ ] Dashboard/compare/reports/insights actions show visible errors on failed API responses.
+- [x] Reports page exposes only implemented report types and each generates distinct content.
+- [x] Re-running scrape/extract on the same company does not create duplicate feature/pricing/marketing/product/blog/event/contact records.
+- [x] Company can be marked/unmarked as “Your Company”, and compare baseline selection influences gap analysis.
+- [x] Dashboard/compare/reports/insights actions show visible errors on failed API responses.
 
 ### Evidence
-- [ ] Test output captured in session notes
-- [ ] API validation includes real-world target URL
+- [x] Test output captured in session notes
+- [x] API validation includes real-world target URL
 
 ## Tasks
 ```json
@@ -85,15 +85,15 @@ Deliver a focused feature-completion pass that:
     "description": "Add UI controls for is_mine and compare baseline selector; wire compare API to accept myCompanyId.",
     "status": "completed",
     "completionTimestamp": "2026-02-13T02:22:00Z",
-    "commitHash": "PENDING"
+    "commitHash": "60e6f62"
   },
   {
     "createdTimestamp": "2026-02-13T01:24:00Z",
     "name": "Improve resilience, UX errors, and validation coverage",
     "description": "Add explicit API error handling across key UI actions, harden server-side parsing, extend smoke tests, and run full validation with real data.",
-    "status": "pending",
-    "completionTimestamp": "",
-    "commitHash": ""
+    "status": "completed",
+    "completionTimestamp": "2026-02-13T03:27:00Z",
+    "commitHash": "PENDING"
   }
 ]
 ```
@@ -108,3 +108,7 @@ Deliver a focused feature-completion pass that:
 - 2026-02-12: Added blog post/event extraction and persisted blog/events/contacts/social/jobs in extract/scrape ingestion paths.
 - 2026-02-12: Implemented idempotent scrape/extract replacement flow using shared ingestion transaction builder and URL-based company upsert behavior.
 - 2026-02-12: Added explicit primary-company UX on dashboard and baseline-company selection in compare flow, wired through compare API via myCompanyId.
+- 2026-02-12: Added action-level API error feedback in dashboard/compare/reports/insights and hardened chat/report parsing + compare/report validation.
+- 2026-02-12: Ran `npm run test:api:report` with `API_TEST_URL=https://www.intercom.com` (PASS, 468410ms).
+- 2026-02-12: Ran `npm run test:api` with `API_TEST_URL=https://www.intercom.com` (PASS: scrape 7953ms, extract 8476ms, compare 59888ms, report 429495ms, chat 4518ms).
+- 2026-02-12: Verified idempotent ingestion via repeated `/api/scrape` + `/api/extract` on Intercom URL; companyId remained stable and singleton intel entities (marketing/product) remained at count 1 after repeat extraction.

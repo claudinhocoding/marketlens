@@ -12,12 +12,6 @@ interface PositioningQuadrantProps {
 }
 
 const axisOptions = ["Product Completeness", "Growth Momentum", "Market Reach", "Feature Depth"];
-const quadrantLabels = [
-  { label: "Rising Stars", x: "left", y: "top" },
-  { label: "Market Leaders", x: "right", y: "top" },
-  { label: "Early Stage", x: "left", y: "bottom" },
-  { label: "Established", x: "right", y: "bottom" },
-];
 
 interface CompanyScore {
   name: string;
@@ -30,8 +24,10 @@ export default function PositioningQuadrant({ companies }: PositioningQuadrantPr
   const [yAxis, setYAxis] = useState(axisOptions[1]);
   const [scores, setScores] = useState<CompanyScore[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const analyze = async () => {
+    setError(null);
     setLoading(true);
     try {
       const res = await fetch("/api/compare", {
@@ -39,11 +35,18 @@ export default function PositioningQuadrant({ companies }: PositioningQuadrantPr
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ type: "positioning", xAxis, yAxis }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to generate positioning analysis.");
+      }
       if (data.comparison?.positioning) {
         setScores(data.comparison.positioning);
+      } else {
+        setScores([]);
       }
-    } catch {} finally {
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to generate positioning analysis.");
+    } finally {
       setLoading(false);
     }
   };
@@ -70,6 +73,8 @@ export default function PositioningQuadrant({ companies }: PositioningQuadrantPr
           {loading ? "Analyzing…" : "Analyze"}
         </button>
       </div>
+
+      {error && <p className="text-danger text-sm mb-4">{error}</p>}
 
       {/* Chart area */}
       <div className="relative w-full aspect-square max-w-lg mx-auto border border-border rounded-lg overflow-hidden bg-background">

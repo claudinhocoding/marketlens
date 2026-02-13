@@ -18,6 +18,7 @@ export default function Dashboard() {
   const [showNewColl, setShowNewColl] = useState(false);
   const [selectedCollection, setSelectedCollection] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [scrapeError, setScrapeError] = useState<string | null>(null);
 
   const handleShare = async () => {
     const url = window.location.href;
@@ -52,16 +53,23 @@ export default function Dashboard() {
 
   const handleScrape = async () => {
     if (!url.trim()) return;
+    setScrapeError(null);
     setScraping(true);
     try {
-      await fetch("/api/scrape", {
+      const res = await fetch("/api/scrape", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: url.trim(), depth }),
       });
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(payload.error || "Failed to scrape website.");
+      }
       setUrl("");
       setShowAdd(false);
-    } catch {} finally {
+    } catch (err) {
+      setScrapeError(err instanceof Error ? err.message : "Failed to scrape website.");
+    } finally {
       setScraping(false);
     }
   };
@@ -165,6 +173,7 @@ export default function Dashboard() {
                 {scraping ? "Scraping…" : "Scrape & Add"}
               </button>
             </div>
+            {scrapeError && <p className="text-danger text-xs mt-3">{scrapeError}</p>}
           </div>
         )}
 

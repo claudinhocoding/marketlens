@@ -15,6 +15,15 @@ export async function POST(req: NextRequest) {
     if (!url) return NextResponse.json({ error: "URL required" }, { status: 400 });
 
     const normalizedUrl = normalizeCompanyUrl(url);
+    try {
+      const parsed = new URL(normalizedUrl);
+      if (!["http:", "https:"].includes(parsed.protocol)) {
+        return NextResponse.json({ error: "Valid http/https URL required" }, { status: 400 });
+      }
+    } catch {
+      return NextResponse.json({ error: "Valid URL required" }, { status: 400 });
+    }
+
     const safeDepth = Math.min(Math.max(Number(depth) || 1, 1), 5);
 
     const scraped = await scrapeWebsite(normalizedUrl, safeDepth);

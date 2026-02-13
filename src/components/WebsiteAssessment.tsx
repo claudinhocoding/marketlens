@@ -24,8 +24,10 @@ interface WebsiteAssessmentProps {
 export default function WebsiteAssessment({ companyId, companyName, hasData }: WebsiteAssessmentProps) {
   const [assessment, setAssessment] = useState<AssessmentData | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const generate = async () => {
+    setError(null);
     setLoading(true);
     try {
       const res = await fetch("/api/report", {
@@ -33,7 +35,10 @@ export default function WebsiteAssessment({ companyId, companyName, hasData }: W
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ type: "assessment", companyId }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to generate website assessment.");
+      }
       if (data.report?.content) {
         try {
           setAssessment(JSON.parse(data.report.content));
@@ -41,7 +46,9 @@ export default function WebsiteAssessment({ companyId, companyName, hasData }: W
           setAssessment({ summary: data.report.content, opportunities: [] });
         }
       }
-    } catch {} finally {
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to generate website assessment.");
+    } finally {
       setLoading(false);
     }
   };
@@ -94,6 +101,8 @@ export default function WebsiteAssessment({ companyId, companyName, hasData }: W
           </button>
         </div>
       </div>
+
+      {error && <p className="text-danger text-sm mb-4">{error}</p>}
 
       {!assessment ? (
         <p className="text-muted text-sm">Click Generate to create an AI assessment.</p>

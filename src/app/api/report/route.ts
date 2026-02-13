@@ -11,6 +11,16 @@ import type { CompanyData } from "@/lib/analysis";
 
 type RawCompany = Record<string, unknown>;
 
+function parseStringArray(raw?: string): string[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((v) => typeof v === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
 function mapCompany(c: RawCompany): CompanyData {
   return {
     id: c.id as string,
@@ -21,15 +31,11 @@ function mapCompany(c: RawCompany): CompanyData {
     marketing_intel: (() => {
       const mi = (c.marketing_intel as Record<string, string>[] | undefined)?.[0];
       if (!mi) return undefined;
-      try {
-        return {
-          value_props: JSON.parse(mi.value_props || "[]"),
-          target_personas: JSON.parse(mi.target_personas || "[]"),
-          differentiators: JSON.parse(mi.differentiators || "[]"),
-        };
-      } catch {
-        return undefined;
-      }
+      return {
+        value_props: parseStringArray(mi.value_props),
+        target_personas: parseStringArray(mi.target_personas),
+        differentiators: parseStringArray(mi.differentiators),
+      };
     })(),
     product_intel: (() => {
       const pi = (c.product_intel as Record<string, string>[] | undefined)?.[0];
@@ -42,7 +48,7 @@ function mapCompany(c: RawCompany): CompanyData {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}));
-    const type = typeof body.type === "string" ? body.type : "competitive_assessment";
+    const requestedType = typeof body.type === "string" ? body.type : "competitive_assessment";
     const companyId = typeof body.companyId === "string" ? body.companyId : undefined;
 
     const db = getAdminDb();
@@ -64,16 +70,19 @@ export async function POST(req: NextRequest) {
     }
 
     let report;
+    let resolvedType = requestedType;
 
-    if (type === "assessment") {
+    if (requestedType === "assessment") {
       const targetRaw = rawCompanies.find((c) => c.id === companyId) || rawCompanies[0];
       report = await import("@/lib/reports").then(({ generateAssessment }) =>
         generateAssessment(mapCompany(targetRaw))
       );
+      resolvedType = "assessment";
     } else {
-      switch (type) {
+      switch (requestedType) {
         case "market_overview":
           report = await generateMarketOverview(companies);
+          resolvedType = "market_overview";
           break;
         case "feature_gap": {
           const focusRaw =
@@ -81,14 +90,17 @@ export async function POST(req: NextRequest) {
             rawCompanies.find((c) => Boolean(c.is_mine)) ||
             rawCompanies[0];
           report = await generateFeatureGapReport(companies, mapCompany(focusRaw));
+          resolvedType = "feature_gap";
           break;
         }
         case "market_positioning":
           report = await generateMarketPositioningReport(companies);
+          resolvedType = "market_positioning";
           break;
         case "competitive_assessment":
         default:
           report = await generateCompetitiveReport(companies);
+          resolvedType = "competitive_assessment";
           break;
       }
     }
@@ -97,7 +109,7 @@ export async function POST(req: NextRequest) {
     await db.transact(
       db.tx.reports[rid].update({
         title: report.title,
-        type,
+        type: resolvedType,
         content: report.content,
         created_at: new Date().toISOString(),
       })
