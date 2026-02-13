@@ -15,6 +15,7 @@ async function askClaude(system: string, prompt: string): Promise<string> {
 }
 
 export interface CompanyData {
+  id?: string;
   name: string;
   is_mine?: boolean;
   features?: { name: string; category?: string; description?: string }[];

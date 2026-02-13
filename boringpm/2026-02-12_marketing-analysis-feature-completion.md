@@ -77,15 +77,15 @@ Deliver a focused feature-completion pass that:
     "description": "Refactor scrape/extract write paths so repeated runs replace existing linked intel instead of duplicating records.",
     "status": "completed",
     "completionTimestamp": "2026-02-13T02:08:00Z",
-    "commitHash": "PENDING"
+    "commitHash": "1648e83"
   },
   {
     "createdTimestamp": "2026-02-13T01:24:00Z",
     "name": "Add primary company workflow for comparisons",
     "description": "Add UI controls for is_mine and compare baseline selector; wire compare API to accept myCompanyId.",
-    "status": "pending",
-    "completionTimestamp": "",
-    "commitHash": ""
+    "status": "completed",
+    "completionTimestamp": "2026-02-13T02:22:00Z",
+    "commitHash": "PENDING"
   },
   {
     "createdTimestamp": "2026-02-13T01:24:00Z",
@@ -107,3 +107,4 @@ Deliver a focused feature-completion pass that:
 - 2026-02-12: Completed report contract parity by implementing feature gap + market positioning generators and exposing market overview in Reports UI.
 - 2026-02-12: Added blog post/event extraction and persisted blog/events/contacts/social/jobs in extract/scrape ingestion paths.
 - 2026-02-12: Implemented idempotent scrape/extract replacement flow using shared ingestion transaction builder and URL-based company upsert behavior.
+- 2026-02-12: Added explicit primary-company UX on dashboard and baseline-company selection in compare flow, wired through compare API via myCompanyId.

@@ -1,7 +1,7 @@
 "use client";
 
 import { db } from "@/lib/db";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import FeatureMatrix from "@/components/FeatureMatrix";
 import TargetingHeatmap from "@/components/TargetingHeatmap";
 import ComparisonTable from "@/components/ComparisonTable";
@@ -15,12 +15,28 @@ export default function ComparePage() {
   });
   const [running, setRunning] = useState(false);
   const [tab, setTab] = useState<"features" | "marketing" | "saved">("features");
+  const [selectedMyCompanyId, setSelectedMyCompanyId] = useState("");
 
   if (isLoading) return <div className="text-muted py-20 text-center">Loading…</div>;
   if (error) return <div className="text-danger py-20 text-center">Error: {error.message}</div>;
 
   const companies = data.companies || [];
   const comparisons = data.comparisons || [];
+
+  useEffect(() => {
+    if (companies.length === 0) {
+      setSelectedMyCompanyId("");
+      return;
+    }
+    const hasCurrent = companies.some((c) => c.id === selectedMyCompanyId);
+    if (!hasCurrent) {
+      const preferred = companies.find((c) => c.is_mine) || companies[0];
+      setSelectedMyCompanyId(preferred.id);
+    }
+  }, [companies, selectedMyCompanyId]);
+
+  const baselineCompany =
+    companies.find((c) => c.id === selectedMyCompanyId) || companies.find((c) => c.is_mine) || companies[0];
 
   const allFeatures = companies.flatMap((c) =>
     (c.features || []).map((f) => ({ ...f, company: { id: c.id, name: c.name } }))
@@ -32,7 +48,11 @@ export default function ComparePage() {
   const runComparison = async () => {
     setRunning(true);
     try {
-      await fetch("/api/compare", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}) });
+      await fetch("/api/compare", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ myCompanyId: baselineCompany?.id || null }),
+      });
     } catch {} finally {
       setRunning(false);
     }
@@ -46,17 +66,34 @@ export default function ComparePage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-8 gap-4">
         <div>
           <h1 className="text-2xl font-bold">Compare</h1>
           <p className="text-muted text-sm mt-1">Analyze competitive positioning across companies</p>
         </div>
-        <button onClick={runComparison} disabled={running} className="bg-accent hover:bg-accent-hover disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium">
-          {running ? "Running…" : "Run Comparison"}
-        </button>
+        <div className="flex items-end gap-3">
+          <div>
+            <label className="text-xs text-muted block mb-1">Baseline Company</label>
+            <select
+              value={selectedMyCompanyId}
+              onChange={(e) => setSelectedMyCompanyId(e.target.value)}
+              className="bg-card border border-border rounded-lg px-3 py-2 text-sm outline-none"
+            >
+              {companies.map((company) => (
+                <option key={company.id} value={company.id}>
+                  {company.is_mine ? "⭐ " : ""}
+                  {company.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button onClick={runComparison} disabled={running || companies.length < 2} className="bg-accent hover:bg-accent-hover disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium">
+            {running ? "Running…" : "Run Comparison"}
+          </button>
+        </div>
       </div>
 
-      <div className="flex gap-1 mb-6 bg-card border border-border rounded-lg p-1">
+      <div className="flex gap-1 mb-3 bg-card border border-border rounded-lg p-1">
         {tabs.map((t) => (
           <button
             key={t.key}
@@ -67,6 +104,10 @@ export default function ComparePage() {
           </button>
         ))}
       </div>
+
+      {baselineCompany && (
+        <p className="text-xs text-muted mb-6">Gap analysis baseline: <span className="text-accent">{baselineCompany.name}</span></p>
+      )}
 
       {tab === "features" && (
         companies.length >= 2 ? (

@@ -1,7 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/admin-db";
 import { id } from "@instantdb/admin";
-import { generateFeatureMatrix, generateTargetingHeatmap, identifyGaps, type CompanyData } from "@/lib/analysis";
+import {
+  generateFeatureMatrix,
+  generateTargetingHeatmap,
+  identifyGaps,
+  type CompanyData,
+} from "@/lib/analysis";
+
+function parseArray(value?: string) {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -19,16 +34,18 @@ export async function POST(req: NextRequest) {
     });
 
     const companies: CompanyData[] = (data.companies || []).map((c: Record<string, unknown>) => ({
+      id: c.id as string,
       name: c.name as string,
+      is_mine: Boolean(c.is_mine),
       features: (c.features as { name: string; category?: string; description?: string }[]) || [],
       pricing_tiers: (c.pricing_tiers as { name: string; price?: string }[]) || [],
       marketing_intel: (() => {
         const mi = (c.marketing_intel as Record<string, string>[] | undefined)?.[0];
         if (!mi) return undefined;
         return {
-          value_props: JSON.parse(mi.value_props || "[]"),
-          target_personas: JSON.parse(mi.target_personas || "[]"),
-          differentiators: JSON.parse(mi.differentiators || "[]"),
+          value_props: parseArray(mi.value_props),
+          target_personas: parseArray(mi.target_personas),
+          differentiators: parseArray(mi.differentiators),
         };
       })(),
       product_intel: (() => {
@@ -38,14 +55,26 @@ export async function POST(req: NextRequest) {
       })(),
     }));
 
-    const myCompany = companies.find((c: CompanyData) => body.myCompanyName && c.name === body.myCompanyName) || companies[0];
-    const competitors = companies.filter((c: CompanyData) => c !== myCompany);
+    const myCompanyId = typeof body.myCompanyId === "string" ? body.myCompanyId : undefined;
+    const myCompanyName = typeof body.myCompanyName === "string" ? body.myCompanyName : undefined;
+
+    const myCompany =
+      companies.find((c) => myCompanyId && c.id === myCompanyId) ||
+      companies.find((c) => myCompanyName && c.name === myCompanyName) ||
+      companies.find((c) => c.is_mine) ||
+      companies[0];
+
+    const competitors = companies.filter((c) => (myCompany?.id ? c.id !== myCompany.id : c !== myCompany));
 
     let comparison: Record<string, unknown>;
 
     if (body.type === "positioning") {
       const { scoreCompaniesOnAxes } = await import("@/lib/analysis");
-      const positioning = await scoreCompaniesOnAxes(companies, body.xAxis || "Product Completeness", body.yAxis || "Growth Momentum");
+      const positioning = await scoreCompaniesOnAxes(
+        companies,
+        body.xAxis || "Product Completeness",
+        body.yAxis || "Growth Momentum"
+      );
       comparison = { positioning };
     } else if (body.type === "targeting_matrix") {
       const { generateTargetingMatrix } = await import("@/lib/analysis");
@@ -61,7 +90,7 @@ export async function POST(req: NextRequest) {
         generateTargetingHeatmap(companies),
         myCompany ? identifyGaps(competitors, myCompany) : null,
       ]);
-      comparison = { featureMatrix, heatmap, gaps };
+      comparison = { featureMatrix, heatmap, gaps, baselineCompanyId: myCompany?.id || null };
     }
     const cid = id();
 

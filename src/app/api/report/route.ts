@@ -13,6 +13,7 @@ type RawCompany = Record<string, unknown>;
 
 function mapCompany(c: RawCompany): CompanyData {
   return {
+    id: c.id as string,
     name: c.name as string,
     is_mine: Boolean(c.is_mine),
     features: (c.features as { name: string; category?: string; description?: string }[]) || [],
