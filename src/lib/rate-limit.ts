@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 
 interface RateLimitOptions {
@@ -13,6 +14,7 @@ interface RateLimitState {
 }
 
 const buckets = new Map<string, RateLimitState>();
+const MAX_BUCKETS = 10_000;
 let checksSinceCleanup = 0;
 
 function cleanupExpiredBuckets(now: number) {
@@ -27,20 +29,49 @@ function cleanupExpiredBuckets(now: number) {
       buckets.delete(bucketKey);
     }
   }
+
+  if (buckets.size > MAX_BUCKETS) {
+    const overflow = buckets.size - MAX_BUCKETS;
+    let removed = 0;
+    for (const bucketKey of buckets.keys()) {
+      buckets.delete(bucketKey);
+      removed += 1;
+      if (removed >= overflow) break;
+    }
+  }
 }
 
 function enforceRateLimit(): boolean {
   return process.env.MARKETLENS_ENFORCE_RATE_LIMIT !== "false";
 }
 
+function normalizeIdentifier(identifier: string): string {
+  const trimmed = identifier.trim() || "unknown";
+  if (trimmed.length <= 128) return trimmed;
+
+  return createHash("sha256").update(trimmed).digest("hex");
+}
+
 function getBucketKey({ bucket, identifier }: Pick<RateLimitOptions, "bucket" | "identifier">) {
-  return `${bucket}:${identifier}`;
+  return `${bucket}:${normalizeIdentifier(identifier)}`;
 }
 
 function getClientIp(req: NextRequest): string {
-  const xff = req.headers.get("x-forwarded-for");
-  if (!xff) return "unknown";
-  return xff.split(",")[0].trim() || "unknown";
+  const trustProxy = process.env.MARKETLENS_TRUST_PROXY === "true";
+
+  if (trustProxy) {
+    const xForwardedFor = req.headers.get("x-forwarded-for");
+    if (xForwardedFor) {
+      return xForwardedFor.split(",")[0].trim() || "unknown";
+    }
+
+    const xRealIp = req.headers.get("x-real-ip");
+    if (xRealIp) {
+      return xRealIp.trim() || "unknown";
+    }
+  }
+
+  return "unknown";
 }
 
 export function rateLimitIdentifier(
