@@ -5,6 +5,7 @@ import { extractAll } from "@/lib/extraction";
 import { scrapeWebsite } from "@/lib/scraper";
 import { requireApiAuth } from "@/lib/api-guard";
 import { rateLimitIdentifier, requireRateLimit } from "@/lib/rate-limit";
+import { validateExternalCompanyUrl } from "@/lib/url-safety";
 
 export async function POST(req: NextRequest) {
   try {
@@ -25,7 +26,13 @@ export async function POST(req: NextRequest) {
     if (!companyId) return NextResponse.json({ error: "companyId required" }, { status: 400 });
     if (!url) return NextResponse.json({ error: "url required" }, { status: 400 });
 
-    const scraped = await scrapeWebsite(url);
+    const validation = await validateExternalCompanyUrl(url);
+    if (!validation.ok) {
+      return NextResponse.json({ error: validation.error }, { status: 400 });
+    }
+
+    const normalizedUrl = validation.normalizedUrl;
+    const scraped = await scrapeWebsite(normalizedUrl);
     const allText = [scraped.mainPage.text, ...scraped.subPages.map((p) => p.text)].join("\n\n");
     const extracted = await extractAll(allText);
 
@@ -46,9 +53,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    if (!company.owner_id) {
-      await db.transact(db.tx.companies[companyId].update({ owner_id: ownerId }));
-    }
+    await db.transact(
+      db.tx.companies[companyId].update({
+        owner_id: company.owner_id || ownerId,
+        url: normalizedUrl,
+        scraped_at: new Date().toISOString(),
+      })
+    );
 
     if (extracted.features) {
       for (const f of extracted.features) {

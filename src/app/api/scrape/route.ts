@@ -5,6 +5,7 @@ import { scrapeWebsite } from "@/lib/scraper";
 import { extractAll } from "@/lib/extraction";
 import { requireApiAuth } from "@/lib/api-guard";
 import { rateLimitIdentifier, requireRateLimit } from "@/lib/rate-limit";
+import { validateExternalCompanyUrl } from "@/lib/url-safety";
 
 export async function POST(req: NextRequest) {
   try {
@@ -24,7 +25,13 @@ export async function POST(req: NextRequest) {
     const { url, depth } = await req.json();
     if (!url) return NextResponse.json({ error: "URL required" }, { status: 400 });
 
-    const scraped = await scrapeWebsite(url, Math.min(Math.max(depth || 1, 1), 5));
+    const validation = await validateExternalCompanyUrl(url);
+    if (!validation.ok) {
+      return NextResponse.json({ error: validation.error }, { status: 400 });
+    }
+
+    const normalizedUrl = validation.normalizedUrl;
+    const scraped = await scrapeWebsite(normalizedUrl, Math.min(Math.max(depth || 1, 1), 5));
 
     // Combine all text for extraction
     const allText = [scraped.mainPage.text, ...scraped.subPages.map((p) => p.text)].join("\n\n");
@@ -38,7 +45,7 @@ export async function POST(req: NextRequest) {
       db.tx.companies[companyId].update({
         owner_id: ownerId,
         name: scraped.name,
-        url,
+        url: normalizedUrl,
         description: scraped.description,
         industry: scraped.industry,
         is_mine: false,
@@ -137,7 +144,7 @@ export async function POST(req: NextRequest) {
           title: c.title || "",
           email: c.email || "",
           phone: c.phone || "",
-          source_url: url,
+          source_url: normalizedUrl,
         }),
         db.tx.companies[companyId].link({ contacts: cid }),
       ]);

@@ -36,7 +36,11 @@ export async function POST(req: NextRequest) {
     // Fetch all companies with their related data
     const data = await db.query({
       companies: {
-        $: { where: { owner_id: ownerId } },
+        $: {
+          where: {
+            or: [{ owner_id: ownerId }, { owner_id: { $isNull: true } }],
+          },
+        },
         features: {},
         pricing_tiers: {},
         marketing_intel: {},
@@ -45,6 +49,7 @@ export async function POST(req: NextRequest) {
     });
 
     const companies: CompanyData[] = (data.companies || []).map((c: Record<string, unknown>) => ({
+      id: c.id as string,
       name: c.name as string,
       features: (c.features as { name: string; category?: string; description?: string }[]) || [],
       pricing_tiers: (c.pricing_tiers as { name: string; price?: string }[]) || [],

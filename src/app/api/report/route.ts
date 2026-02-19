@@ -36,7 +36,11 @@ export async function POST(req: NextRequest) {
 
     const data = await db.query({
       companies: {
-        $: { where: { owner_id: ownerId } },
+        $: {
+          where: {
+            or: [{ owner_id: ownerId }, { owner_id: { $isNull: true } }],
+          },
+        },
         features: {},
         pricing_tiers: {},
         marketing_intel: {},
@@ -45,6 +49,7 @@ export async function POST(req: NextRequest) {
     });
 
     const companies: CompanyData[] = (data.companies || []).map((c: Record<string, unknown>) => ({
+      id: c.id as string,
       name: c.name as string,
       features: (c.features as { name: string; category?: string; description?: string }[]) || [],
       pricing_tiers: (c.pricing_tiers as { name: string; price?: string }[]) || [],
@@ -69,13 +74,18 @@ export async function POST(req: NextRequest) {
     }
 
     let report;
-    if (type === "assessment" && companyId) {
+    if (type === "assessment") {
+      if (!companyId) {
+        return NextResponse.json({ error: "companyId required for assessment reports" }, { status: 400 });
+      }
+
       const { generateAssessment } = await import("@/lib/reports");
-      const target = companies.find((c: CompanyData) => {
-        const match = (data.companies || []).find((dc: Record<string, unknown>) => dc.id === companyId);
-        return match && (match as Record<string, unknown>).name === c.name;
-      }) || companies[0];
-      report = target ? await generateAssessment(target) : await generateCompetitiveReport(companies);
+      const target = companies.find((c: CompanyData) => c.id === companyId);
+      if (!target) {
+        return NextResponse.json({ error: "Company not found" }, { status: 404 });
+      }
+
+      report = await generateAssessment(target);
     } else {
       report = type === "market_overview"
         ? await generateMarketOverview(companies)

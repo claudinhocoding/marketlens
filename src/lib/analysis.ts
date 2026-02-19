@@ -1,6 +1,7 @@
 import { askClaude, parseWithSchema, z } from "@/lib/llm";
 
 export interface CompanyData {
+  id?: string;
   name: string;
   features?: { name: string; category?: string; description?: string }[];
   marketing_intel?: { value_props?: string[]; target_personas?: string[]; differentiators?: string[] };
