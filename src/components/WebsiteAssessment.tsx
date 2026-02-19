@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { postApiJson } from "@/lib/api-client";
 
 interface Opportunity {
   title: string;
@@ -28,11 +29,7 @@ export default function WebsiteAssessment({ companyId, companyName, hasData }: W
   const generate = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/report", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "assessment", companyId }),
-      });
+      const res = await postApiJson("/api/report", { type: "assessment", companyId });
       const data = await res.json();
       if (data.report?.content) {
         try {

@@ -1,6 +1,7 @@
 "use client";
 
 import { db } from "@/lib/db";
+import { postApiJson } from "@/lib/api-client";
 import { id } from "@instantdb/react";
 import CompanyCard from "@/components/CompanyCard";
 import { useState } from "react";
@@ -56,11 +57,7 @@ export default function Dashboard() {
     if (!url.trim()) return;
     setScraping(true);
     try {
-      await fetch("/api/scrape", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: url.trim(), depth }),
-      });
+      await postApiJson("/api/scrape", { url: url.trim(), depth });
       setUrl("");
       setShowAdd(false);
     } catch {} finally {

@@ -1,6 +1,7 @@
 "use client";
 
 import { db } from "@/lib/db";
+import { postApiJson } from "@/lib/api-client";
 import { useState } from "react";
 
 export default function ReportsPage() {
@@ -29,11 +30,7 @@ export default function ReportsPage() {
   const generate = async () => {
     setGenerating(true);
     try {
-      await fetch("/api/report", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: reportType }),
-      });
+      await postApiJson("/api/report", { type: reportType });
     } catch {} finally {
       setGenerating(false);
     }

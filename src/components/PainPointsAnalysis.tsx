@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { postApiJson } from "@/lib/api-client";
 
 interface PainPoint {
   text: string;
@@ -37,11 +38,7 @@ export default function PainPointsAnalysis({ companyCount }: PainPointsAnalysisP
   const analyze = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/compare", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "pain_points" }),
-      });
+      const res = await postApiJson("/api/compare", { type: "pain_points" });
       const data = await res.json();
       if (data.comparison?.painPoints?.pain_points) {
         setPainPoints(data.comparison.painPoints.pain_points);

@@ -2,9 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/admin-db";
 import { id } from "@instantdb/admin";
 import { generateFeatureMatrix, generateTargetingHeatmap, identifyGaps, type CompanyData } from "@/lib/analysis";
+import { requireApiAuth } from "@/lib/api-guard";
 
 export async function POST(req: NextRequest) {
   try {
+    const auth = await requireApiAuth(req);
+    if (!auth.ok) return auth.response;
+
     const body = await req.json().catch(() => ({}));
     const db = getAdminDb();
 

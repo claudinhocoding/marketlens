@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/admin-db";
 import { handleQuery } from "@/lib/agent";
+import { requireApiAuth } from "@/lib/api-guard";
 
 export async function POST(req: NextRequest) {
   try {
+    const auth = await requireApiAuth(req);
+    if (!auth.ok) return auth.response;
+
     const { message, history } = await req.json();
     if (!message) return NextResponse.json({ error: "message required" }, { status: 400 });
 

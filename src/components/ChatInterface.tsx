@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { postApiJson } from "@/lib/api-client";
 
 interface Message {
   role: "user" | "assistant";
@@ -24,11 +25,7 @@ export default function ChatInterface() {
     setInput("");
     setLoading(true);
     try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: userMsg.content, history: messages }),
-      });
+      const res = await postApiJson("/api/chat", { message: userMsg.content, history: messages });
       const data = await res.json();
       setMessages((prev) => [...prev, { role: "assistant", content: data.response || data.error || "No response" }]);
     } catch (err) {

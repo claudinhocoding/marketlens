@@ -3,9 +3,13 @@ import { getAdminDb } from "@/lib/admin-db";
 import { id } from "@instantdb/admin";
 import { generateCompetitiveReport, generateMarketOverview } from "@/lib/reports";
 import type { CompanyData } from "@/lib/analysis";
+import { requireApiAuth } from "@/lib/api-guard";
 
 export async function POST(req: NextRequest) {
   try {
+    const auth = await requireApiAuth(req);
+    if (!auth.ok) return auth.response;
+
     const { type, companyId } = await req.json();
     const db = getAdminDb();
 

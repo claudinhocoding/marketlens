@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { postApiJson } from "@/lib/api-client";
 
 interface Company {
   id: string;
@@ -34,11 +35,7 @@ export default function PositioningQuadrant({ companies }: PositioningQuadrantPr
   const analyze = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/compare", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "positioning", xAxis, yAxis }),
-      });
+      const res = await postApiJson("/api/compare", { type: "positioning", xAxis, yAxis });
       const data = await res.json();
       if (data.comparison?.positioning) {
         setScores(data.comparison.positioning);

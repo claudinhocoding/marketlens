@@ -3,9 +3,13 @@ import { getAdminDb } from "@/lib/admin-db";
 import { id } from "@instantdb/admin";
 import { scrapeWebsite } from "@/lib/scraper";
 import { extractAll } from "@/lib/extraction";
+import { requireApiAuth } from "@/lib/api-guard";
 
 export async function POST(req: NextRequest) {
   try {
+    const auth = await requireApiAuth(req);
+    if (!auth.ok) return auth.response;
+
     const { url, depth } = await req.json();
     if (!url) return NextResponse.json({ error: "URL required" }, { status: 400 });
 
