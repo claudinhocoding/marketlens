@@ -28,7 +28,7 @@ export default function ChatInterface() {
       const res = await postApiJson("/api/chat", { message: userMsg.content, history: messages });
       const data = await res.json();
       setMessages((prev) => [...prev, { role: "assistant", content: data.response || data.error || "No response" }]);
-    } catch (err) {
+    } catch {
       setMessages((prev) => [...prev, { role: "assistant", content: "Error connecting to agent." }]);
     } finally {
       setLoading(false);

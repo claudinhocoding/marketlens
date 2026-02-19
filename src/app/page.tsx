@@ -44,8 +44,6 @@ export default function Dashboard() {
 
   const companies = data.companies || [];
   const collections = data.collections || [];
-  const mine = companies.filter((c) => c.is_mine);
-  const competitors = companies.filter((c) => !c.is_mine);
 
   const filteredCompanies = selectedCollection
     ? companies.filter((c) => c.collections?.some((col) => col.id === selectedCollection))

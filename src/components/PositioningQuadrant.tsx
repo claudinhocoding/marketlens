@@ -13,12 +13,6 @@ interface PositioningQuadrantProps {
 }
 
 const axisOptions = ["Product Completeness", "Growth Momentum", "Market Reach", "Feature Depth"];
-const quadrantLabels = [
-  { label: "Rising Stars", x: "left", y: "top" },
-  { label: "Market Leaders", x: "right", y: "top" },
-  { label: "Early Stage", x: "left", y: "bottom" },
-  { label: "Established", x: "right", y: "bottom" },
-];
 
 interface CompanyScore {
   name: string;
