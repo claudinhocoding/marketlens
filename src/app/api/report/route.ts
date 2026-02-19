@@ -36,11 +36,7 @@ export async function POST(req: NextRequest) {
 
     const data = await db.query({
       companies: {
-        $: {
-          where: {
-            or: [{ owner_id: ownerId }, { owner_id: { $isNull: true } }],
-          },
-        },
+        $: { where: { owner_id: ownerId } },
         features: {},
         pricing_tiers: {},
         marketing_intel: {},

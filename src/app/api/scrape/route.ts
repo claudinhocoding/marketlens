@@ -31,13 +31,28 @@ export async function POST(req: NextRequest) {
     }
 
     const normalizedUrl = validation.normalizedUrl;
+
+    const db = getAdminDb();
+    const maxSites = Math.max(Number(process.env.NEXT_PUBLIC_MAX_SITES || "10"), 1);
+    const existingCompanies = await db.query({
+      companies: {
+        $: { where: { owner_id: ownerId } },
+      },
+    });
+
+    if ((existingCompanies.companies?.length || 0) >= maxSites) {
+      return NextResponse.json(
+        { error: `Site limit reached (${maxSites}). Remove a tracked company before adding more.` },
+        { status: 400 }
+      );
+    }
+
     const scraped = await scrapeWebsite(normalizedUrl, Math.min(Math.max(depth || 1, 1), 5));
 
     // Combine all text for extraction
     const allText = [scraped.mainPage.text, ...scraped.subPages.map((p) => p.text)].join("\n\n");
     const extracted = await extractAll(allText);
 
-    const db = getAdminDb();
     const companyId = id();
 
     // Store company

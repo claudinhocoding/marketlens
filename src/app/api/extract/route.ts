@@ -26,16 +26,6 @@ export async function POST(req: NextRequest) {
     if (!companyId) return NextResponse.json({ error: "companyId required" }, { status: 400 });
     if (!url) return NextResponse.json({ error: "url required" }, { status: 400 });
 
-    const validation = await validateExternalCompanyUrl(url);
-    if (!validation.ok) {
-      return NextResponse.json({ error: validation.error }, { status: 400 });
-    }
-
-    const normalizedUrl = validation.normalizedUrl;
-    const scraped = await scrapeWebsite(normalizedUrl);
-    const allText = [scraped.mainPage.text, ...scraped.subPages.map((p) => p.text)].join("\n\n");
-    const extracted = await extractAll(allText);
-
     const db = getAdminDb();
 
     const companyLookup = await db.query({
@@ -49,13 +39,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Company not found" }, { status: 404 });
     }
 
-    if (company.owner_id && company.owner_id !== ownerId) {
+    if (company.owner_id !== ownerId) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    const validation = await validateExternalCompanyUrl(url);
+    if (!validation.ok) {
+      return NextResponse.json({ error: validation.error }, { status: 400 });
+    }
+
+    const normalizedUrl = validation.normalizedUrl;
+    const scraped = await scrapeWebsite(normalizedUrl);
+    const allText = [scraped.mainPage.text, ...scraped.subPages.map((p) => p.text)].join("\n\n");
+    const extracted = await extractAll(allText);
+
     await db.transact(
       db.tx.companies[companyId].update({
-        owner_id: company.owner_id || ownerId,
+        owner_id: ownerId,
         url: normalizedUrl,
         scraped_at: new Date().toISOString(),
       })

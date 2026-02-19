@@ -2,9 +2,9 @@
 
 import type { InstantRules } from "@instantdb/react";
 
-const canViewOwned = "auth.id != null && (data.owner_id == auth.id || data.owner_id == null)";
+const canViewOwned = "auth.id != null && data.owner_id == auth.id";
 const canCreateOwned = "auth.id != null && newData.owner_id == auth.id";
-const canUpdateOwned = "auth.id != null && (data.owner_id == auth.id || (data.owner_id == null && newData.owner_id == auth.id))";
+const canUpdateOwned = "auth.id != null && data.owner_id == auth.id && newData.owner_id == auth.id";
 const canDeleteOwned = "auth.id != null && data.owner_id == auth.id";
 
 const ownedEntityRules = {

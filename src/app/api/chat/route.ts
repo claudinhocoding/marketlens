@@ -26,11 +26,7 @@ export async function POST(req: NextRequest) {
     const db = getAdminDb();
     const data = await db.query({
       companies: {
-        $: {
-          where: {
-            or: [{ owner_id: ownerId }, { owner_id: { $isNull: true } }],
-          },
-        },
+        $: { where: { owner_id: ownerId } },
         features: {},
         pricing_tiers: {},
       },
