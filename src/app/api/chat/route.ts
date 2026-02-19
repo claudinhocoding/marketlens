@@ -2,11 +2,20 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/admin-db";
 import { handleQuery } from "@/lib/agent";
 import { requireApiAuth } from "@/lib/api-guard";
+import { rateLimitIdentifier, requireRateLimit } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
   try {
     const auth = await requireApiAuth(req);
     if (!auth.ok) return auth.response;
+
+    const limited = requireRateLimit({
+      bucket: "api:chat",
+      identifier: rateLimitIdentifier(req, auth.user.id),
+      limit: 60,
+      windowMs: 5 * 60 * 1000,
+    });
+    if (limited) return limited;
 
     const { message, history } = await req.json();
     if (!message) return NextResponse.json({ error: "message required" }, { status: 400 });

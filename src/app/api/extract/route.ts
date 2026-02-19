@@ -4,11 +4,20 @@ import { id } from "@instantdb/admin";
 import { extractAll } from "@/lib/extraction";
 import { scrapeWebsite } from "@/lib/scraper";
 import { requireApiAuth } from "@/lib/api-guard";
+import { rateLimitIdentifier, requireRateLimit } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
   try {
     const auth = await requireApiAuth(req);
     if (!auth.ok) return auth.response;
+
+    const limited = requireRateLimit({
+      bucket: "api:extract",
+      identifier: rateLimitIdentifier(req, auth.user.id),
+      limit: 10,
+      windowMs: 10 * 60 * 1000,
+    });
+    if (limited) return limited;
 
     const { companyId, url } = await req.json();
     if (!companyId) return NextResponse.json({ error: "companyId required" }, { status: 400 });

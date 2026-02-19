@@ -4,11 +4,20 @@ import { id } from "@instantdb/admin";
 import { generateCompetitiveReport, generateMarketOverview } from "@/lib/reports";
 import type { CompanyData } from "@/lib/analysis";
 import { requireApiAuth } from "@/lib/api-guard";
+import { rateLimitIdentifier, requireRateLimit } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
   try {
     const auth = await requireApiAuth(req);
     if (!auth.ok) return auth.response;
+
+    const limited = requireRateLimit({
+      bucket: "api:report",
+      identifier: rateLimitIdentifier(req, auth.user.id),
+      limit: 15,
+      windowMs: 5 * 60 * 1000,
+    });
+    if (limited) return limited;
 
     const { type, companyId } = await req.json();
     const db = getAdminDb();
