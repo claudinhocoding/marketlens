@@ -1,3 +1,5 @@
+import "dotenv/config";
+
 const SUITE_ORDER = ["scrape", "extract", "compare", "report", "chat"];
 
 function createContext(overrides = {}) {
@@ -11,6 +13,8 @@ function createContext(overrides = {}) {
       "Give me a one-sentence competitive summary based on current data.",
     skipScrape: process.env.API_TEST_SKIP_SCRAPE === "true",
     companyId: process.env.API_TEST_COMPANY_ID || "",
+    apiAuthToken: process.env.API_TEST_AUTH_TOKEN || "",
+    enforceApiAuth: process.env.MARKETLENS_ENFORCE_API_AUTH !== "false",
     ...overrides,
   };
 }
@@ -33,14 +37,39 @@ function short(value, max = 400) {
   return text.length > max ? `${text.slice(0, max)}...` : text;
 }
 
+async function ensureAuthToken(ctx) {
+  if (!ctx.enforceApiAuth) return "";
+  if (hasText(ctx.apiAuthToken)) return ctx.apiAuthToken;
+
+  const appId = process.env.NEXT_PUBLIC_INSTANT_APP_ID;
+  const adminToken = process.env.INSTANT_APP_ADMIN_TOKEN;
+  if (!appId || !adminToken) {
+    throw new Error("Missing NEXT_PUBLIC_INSTANT_APP_ID or INSTANT_APP_ADMIN_TOKEN for API auth token generation.");
+  }
+
+  const { init } = await import("@instantdb/admin");
+  const adminDb = init({ appId, adminToken });
+  const token = await adminDb.auth.createToken({
+    email: `api-test+${Date.now()}@marketlens.local`,
+  });
+
+  ctx.apiAuthToken = token;
+  return token;
+}
+
 async function postJson(ctx, path, payload) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), ctx.timeoutMs);
 
   try {
+    const token = await ensureAuthToken(ctx);
+
     const response = await fetch(`${ctx.baseUrl}${path}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
       body: JSON.stringify(payload),
       signal: controller.signal,
     });

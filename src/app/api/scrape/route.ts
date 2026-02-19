@@ -11,9 +11,11 @@ export async function POST(req: NextRequest) {
     const auth = await requireApiAuth(req);
     if (!auth.ok) return auth.response;
 
+    const ownerId = auth.user.id;
+
     const limited = requireRateLimit({
       bucket: "api:scrape",
-      identifier: rateLimitIdentifier(req, auth.user.id),
+      identifier: rateLimitIdentifier(req, ownerId),
       limit: 6,
       windowMs: 10 * 60 * 1000,
     });
@@ -34,6 +36,7 @@ export async function POST(req: NextRequest) {
     // Store company
     await db.transact(
       db.tx.companies[companyId].update({
+        owner_id: ownerId,
         name: scraped.name,
         url,
         description: scraped.description,
@@ -48,7 +51,12 @@ export async function POST(req: NextRequest) {
     for (const sp of scraped.socialProfiles) {
       const spId = id();
       await db.transact([
-        db.tx.social_profiles[spId].update({ platform: sp.platform, url: sp.url, followers_count: sp.followers_count || 0 }),
+        db.tx.social_profiles[spId].update({
+          owner_id: ownerId,
+          platform: sp.platform,
+          url: sp.url,
+          followers_count: sp.followers_count || 0,
+        }),
         db.tx.companies[companyId].link({ social_profiles: spId }),
       ]);
     }
@@ -57,7 +65,12 @@ export async function POST(req: NextRequest) {
     for (const f of extracted.features) {
       const fid = id();
       await db.transact([
-        db.tx.features[fid].update({ name: f.name, category: f.category || "", description: f.description || "" }),
+        db.tx.features[fid].update({
+          owner_id: ownerId,
+          name: f.name,
+          category: f.category || "",
+          description: f.description || "",
+        }),
         db.tx.companies[companyId].link({ features: fid }),
       ]);
     }
@@ -66,7 +79,13 @@ export async function POST(req: NextRequest) {
     for (const t of extracted.pricing_tiers) {
       const tid = id();
       await db.transact([
-        db.tx.pricing_tiers[tid].update({ name: t.name, price: t.price || "", billing_period: t.billing_period || "", features_text: t.features_text || "" }),
+        db.tx.pricing_tiers[tid].update({
+          owner_id: ownerId,
+          name: t.name,
+          price: t.price || "",
+          billing_period: t.billing_period || "",
+          features_text: t.features_text || "",
+        }),
         db.tx.companies[companyId].link({ pricing_tiers: tid }),
       ]);
     }
@@ -76,6 +95,7 @@ export async function POST(req: NextRequest) {
       const mid = id();
       await db.transact([
         db.tx.marketing_intel[mid].update({
+          owner_id: ownerId,
           value_props: JSON.stringify(extracted.marketing.value_props),
           target_personas: JSON.stringify(extracted.marketing.target_personas),
           key_messages: JSON.stringify(extracted.marketing.key_messages),
@@ -94,7 +114,14 @@ export async function POST(req: NextRequest) {
       for (const j of jobs) {
         const jid = id();
         await db.transact([
-          db.tx.job_listings[jid].update({ title: j.title, location: j.location || "", department: j.department || "", url: j.url || "", posted_date: j.posted_date || "" }),
+          db.tx.job_listings[jid].update({
+            owner_id: ownerId,
+            title: j.title,
+            location: j.location || "",
+            department: j.department || "",
+            url: j.url || "",
+            posted_date: j.posted_date || "",
+          }),
           db.tx.companies[companyId].link({ job_listings: jid }),
         ]);
       }
@@ -104,7 +131,14 @@ export async function POST(req: NextRequest) {
     for (const c of extracted.contacts || []) {
       const cid = id();
       await db.transact([
-        db.tx.contacts[cid].update({ name: c.name, title: c.title || "", email: c.email || "", phone: c.phone || "", source_url: url }),
+        db.tx.contacts[cid].update({
+          owner_id: ownerId,
+          name: c.name,
+          title: c.title || "",
+          email: c.email || "",
+          phone: c.phone || "",
+          source_url: url,
+        }),
         db.tx.companies[companyId].link({ contacts: cid }),
       ]);
     }
@@ -114,6 +148,7 @@ export async function POST(req: NextRequest) {
       const pid = id();
       await db.transact([
         db.tx.product_intel[pid].update({
+          owner_id: ownerId,
           feature_summary: extracted.product.feature_summary,
           tech_stack: extracted.product.tech_stack,
           positioning: extracted.product.positioning,
@@ -124,7 +159,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, companyId, scraped, extracted });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("/api/scrape failed", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

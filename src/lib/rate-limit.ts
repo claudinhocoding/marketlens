@@ -13,6 +13,21 @@ interface RateLimitState {
 }
 
 const buckets = new Map<string, RateLimitState>();
+let checksSinceCleanup = 0;
+
+function cleanupExpiredBuckets(now: number) {
+  checksSinceCleanup += 1;
+  if (checksSinceCleanup < 100 && buckets.size < 5000) {
+    return;
+  }
+
+  checksSinceCleanup = 0;
+  for (const [bucketKey, state] of buckets.entries()) {
+    if (now >= state.resetAt) {
+      buckets.delete(bucketKey);
+    }
+  }
+}
 
 function enforceRateLimit(): boolean {
   return process.env.MARKETLENS_ENFORCE_RATE_LIMIT !== "false";
@@ -38,6 +53,8 @@ export function requireRateLimit(opts: RateLimitOptions): NextResponse | null {
   }
 
   const now = Date.now();
+  cleanupExpiredBuckets(now);
+
   const key = getBucketKey(opts);
   const existing = buckets.get(key);
 

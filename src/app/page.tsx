@@ -7,6 +7,7 @@ import CompanyCard from "@/components/CompanyCard";
 import { useState } from "react";
 
 export default function Dashboard() {
+  const { user } = db.useAuth();
   const { isLoading, error, data } = db.useQuery({
     companies: { features: {}, pricing_tiers: {}, marketing_intel: {}, social_profiles: {}, collections: {}, job_listings: {}, events: {} },
     collections: { companies: {} },
@@ -64,9 +65,15 @@ export default function Dashboard() {
   };
 
   const createCollection = () => {
-    if (!newCollName.trim()) return;
+    if (!newCollName.trim() || !user) return;
     const cid = id();
-    db.transact(db.tx.collections[cid].update({ name: newCollName.trim(), description: "" }));
+    db.transact(
+      db.tx.collections[cid].update({
+        owner_id: user.id,
+        name: newCollName.trim(),
+        description: "",
+      })
+    );
     setNewCollName("");
     setShowNewColl(false);
   };

@@ -6,14 +6,26 @@ import type { CompanyData } from "@/lib/analysis";
 import { requireApiAuth } from "@/lib/api-guard";
 import { rateLimitIdentifier, requireRateLimit } from "@/lib/rate-limit";
 
+function parseStringArray(value?: string): string[] {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.filter((v) => typeof v === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const auth = await requireApiAuth(req);
     if (!auth.ok) return auth.response;
 
+    const ownerId = auth.user.id;
+
     const limited = requireRateLimit({
       bucket: "api:report",
-      identifier: rateLimitIdentifier(req, auth.user.id),
+      identifier: rateLimitIdentifier(req, ownerId),
       limit: 15,
       windowMs: 5 * 60 * 1000,
     });
@@ -24,6 +36,7 @@ export async function POST(req: NextRequest) {
 
     const data = await db.query({
       companies: {
+        $: { where: { owner_id: ownerId } },
         features: {},
         pricing_tiers: {},
         marketing_intel: {},
@@ -38,13 +51,11 @@ export async function POST(req: NextRequest) {
       marketing_intel: (() => {
         const mi = (c.marketing_intel as Record<string, string>[] | undefined)?.[0];
         if (!mi) return undefined;
-        try {
-          return {
-            value_props: JSON.parse(mi.value_props || "[]"),
-            target_personas: JSON.parse(mi.target_personas || "[]"),
-            differentiators: JSON.parse(mi.differentiators || "[]"),
-          };
-        } catch { return undefined; }
+        return {
+          value_props: parseStringArray(mi.value_props),
+          target_personas: parseStringArray(mi.target_personas),
+          differentiators: parseStringArray(mi.differentiators),
+        };
       })(),
       product_intel: (() => {
         const pi = (c.product_intel as Record<string, string>[] | undefined)?.[0];
@@ -52,6 +63,10 @@ export async function POST(req: NextRequest) {
         return { feature_summary: pi.feature_summary, positioning: pi.positioning };
       })(),
     }));
+
+    if (companies.length === 0) {
+      return NextResponse.json({ error: "No companies available to report on." }, { status: 400 });
+    }
 
     let report;
     if (type === "assessment" && companyId) {
@@ -70,6 +85,7 @@ export async function POST(req: NextRequest) {
     const rid = id();
     await db.transact(
       db.tx.reports[rid].update({
+        owner_id: ownerId,
         title: report.title,
         type: type || "competitive_assessment",
         content: report.content,
@@ -79,7 +95,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, reportId: rid, report });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("/api/report failed", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

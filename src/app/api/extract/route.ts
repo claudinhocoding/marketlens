@@ -11,9 +11,11 @@ export async function POST(req: NextRequest) {
     const auth = await requireApiAuth(req);
     if (!auth.ok) return auth.response;
 
+    const ownerId = auth.user.id;
+
     const limited = requireRateLimit({
       bucket: "api:extract",
-      identifier: rateLimitIdentifier(req, auth.user.id),
+      identifier: rateLimitIdentifier(req, ownerId),
       limit: 10,
       windowMs: 10 * 60 * 1000,
     });
@@ -29,11 +31,35 @@ export async function POST(req: NextRequest) {
 
     const db = getAdminDb();
 
+    const companyLookup = await db.query({
+      companies: {
+        $: { where: { id: companyId } },
+      },
+    });
+
+    const company = companyLookup.companies?.[0];
+    if (!company) {
+      return NextResponse.json({ error: "Company not found" }, { status: 404 });
+    }
+
+    if (company.owner_id && company.owner_id !== ownerId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    if (!company.owner_id) {
+      await db.transact(db.tx.companies[companyId].update({ owner_id: ownerId }));
+    }
+
     if (extracted.features) {
       for (const f of extracted.features) {
         const fid = id();
         await db.transact([
-          db.tx.features[fid].update({ name: f.name, category: f.category || "", description: f.description || "" }),
+          db.tx.features[fid].update({
+            owner_id: ownerId,
+            name: f.name,
+            category: f.category || "",
+            description: f.description || "",
+          }),
           db.tx.companies[companyId].link({ features: fid }),
         ]);
       }
@@ -43,7 +69,13 @@ export async function POST(req: NextRequest) {
       for (const t of extracted.pricing_tiers) {
         const tid = id();
         await db.transact([
-          db.tx.pricing_tiers[tid].update({ name: t.name, price: t.price || "", billing_period: t.billing_period || "", features_text: t.features_text || "" }),
+          db.tx.pricing_tiers[tid].update({
+            owner_id: ownerId,
+            name: t.name,
+            price: t.price || "",
+            billing_period: t.billing_period || "",
+            features_text: t.features_text || "",
+          }),
           db.tx.companies[companyId].link({ pricing_tiers: tid }),
         ]);
       }
@@ -53,6 +85,7 @@ export async function POST(req: NextRequest) {
       const mid = id();
       await db.transact([
         db.tx.marketing_intel[mid].update({
+          owner_id: ownerId,
           value_props: JSON.stringify(extracted.marketing.value_props),
           target_personas: JSON.stringify(extracted.marketing.target_personas),
           key_messages: JSON.stringify(extracted.marketing.key_messages),
@@ -67,6 +100,7 @@ export async function POST(req: NextRequest) {
       const pid = id();
       await db.transact([
         db.tx.product_intel[pid].update({
+          owner_id: ownerId,
           feature_summary: extracted.product.feature_summary,
           tech_stack: extracted.product.tech_stack,
           positioning: extracted.product.positioning,
@@ -77,7 +111,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, extracted });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("/api/extract failed", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

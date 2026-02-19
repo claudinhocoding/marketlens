@@ -9,9 +9,11 @@ export async function POST(req: NextRequest) {
     const auth = await requireApiAuth(req);
     if (!auth.ok) return auth.response;
 
+    const ownerId = auth.user.id;
+
     const limited = requireRateLimit({
       bucket: "api:chat",
-      identifier: rateLimitIdentifier(req, auth.user.id),
+      identifier: rateLimitIdentifier(req, ownerId),
       limit: 60,
       windowMs: 5 * 60 * 1000,
     });
@@ -23,7 +25,11 @@ export async function POST(req: NextRequest) {
     // Build context from InstantDB
     const db = getAdminDb();
     const data = await db.query({
-      companies: { features: {}, pricing_tiers: {} },
+      companies: {
+        $: { where: { owner_id: ownerId } },
+        features: {},
+        pricing_tiers: {},
+      },
     });
 
     const context = JSON.stringify(data.companies || [], null, 2).slice(0, 10000);
@@ -31,7 +37,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ response });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("/api/chat failed", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

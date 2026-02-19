@@ -2,7 +2,19 @@
 
 import type { InstantRules } from "@instantdb/react";
 
-const isSignedIn = "auth.id != null";
+const canViewOwned = "auth.id != null && data.owner_id == auth.id";
+const canCreateOwned = "auth.id != null && newData.owner_id == auth.id";
+const canUpdateOwned = "auth.id != null && data.owner_id == auth.id";
+const canDeleteOwned = "auth.id != null && data.owner_id == auth.id";
+
+const ownedEntityRules = {
+  allow: {
+    view: canViewOwned,
+    create: canCreateOwned,
+    update: canUpdateOwned,
+    delete: canDeleteOwned,
+  },
+};
 
 const rules = {
   $users: {
@@ -13,116 +25,25 @@ const rules = {
   },
   $files: {
     allow: {
-      view: isSignedIn,
-      create: isSignedIn,
-      update: isSignedIn,
-      delete: isSignedIn,
+      view: "false",
+      create: "false",
+      update: "false",
+      delete: "false",
     },
   },
-  companies: {
-    allow: {
-      view: isSignedIn,
-      create: isSignedIn,
-      update: isSignedIn,
-      delete: isSignedIn,
-    },
-  },
-  features: {
-    allow: {
-      view: isSignedIn,
-      create: isSignedIn,
-      update: isSignedIn,
-      delete: isSignedIn,
-    },
-  },
-  pricing_tiers: {
-    allow: {
-      view: isSignedIn,
-      create: isSignedIn,
-      update: isSignedIn,
-      delete: isSignedIn,
-    },
-  },
-  marketing_intel: {
-    allow: {
-      view: isSignedIn,
-      create: isSignedIn,
-      update: isSignedIn,
-      delete: isSignedIn,
-    },
-  },
-  product_intel: {
-    allow: {
-      view: isSignedIn,
-      create: isSignedIn,
-      update: isSignedIn,
-      delete: isSignedIn,
-    },
-  },
-  blog_posts: {
-    allow: {
-      view: isSignedIn,
-      create: isSignedIn,
-      update: isSignedIn,
-      delete: isSignedIn,
-    },
-  },
-  events: {
-    allow: {
-      view: isSignedIn,
-      create: isSignedIn,
-      update: isSignedIn,
-      delete: isSignedIn,
-    },
-  },
-  collections: {
-    allow: {
-      view: isSignedIn,
-      create: isSignedIn,
-      update: isSignedIn,
-      delete: isSignedIn,
-    },
-  },
-  contacts: {
-    allow: {
-      view: isSignedIn,
-      create: isSignedIn,
-      update: isSignedIn,
-      delete: isSignedIn,
-    },
-  },
-  job_listings: {
-    allow: {
-      view: isSignedIn,
-      create: isSignedIn,
-      update: isSignedIn,
-      delete: isSignedIn,
-    },
-  },
-  social_profiles: {
-    allow: {
-      view: isSignedIn,
-      create: isSignedIn,
-      update: isSignedIn,
-      delete: isSignedIn,
-    },
-  },
-  comparisons: {
-    allow: {
-      view: isSignedIn,
-      create: isSignedIn,
-      update: isSignedIn,
-      delete: isSignedIn,
-    },
-  },
-  reports: {
-    allow: {
-      view: isSignedIn,
-      create: isSignedIn,
-      update: isSignedIn,
-      delete: isSignedIn,
-    },
-  },
+  companies: ownedEntityRules,
+  features: ownedEntityRules,
+  pricing_tiers: ownedEntityRules,
+  marketing_intel: ownedEntityRules,
+  product_intel: ownedEntityRules,
+  blog_posts: ownedEntityRules,
+  events: ownedEntityRules,
+  collections: ownedEntityRules,
+  contacts: ownedEntityRules,
+  job_listings: ownedEntityRules,
+  social_profiles: ownedEntityRules,
+  comparisons: ownedEntityRules,
+  reports: ownedEntityRules,
 } satisfies InstantRules;
 
 export default rules;

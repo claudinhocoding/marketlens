@@ -12,6 +12,7 @@ const _schema = i.schema({
       type: i.string().optional(),
     }),
     companies: i.entity({
+      owner_id: i.string().optional(),
       name: i.string(),
       url: i.string(),
       description: i.string().optional(),
@@ -21,17 +22,20 @@ const _schema = i.schema({
       thumbnail_url: i.string().optional(),
     }),
     features: i.entity({
+      owner_id: i.string().optional(),
       name: i.string(),
       category: i.string().optional(),
       description: i.string().optional(),
     }),
     pricing_tiers: i.entity({
+      owner_id: i.string().optional(),
       name: i.string(),
       price: i.string().optional(),
       billing_period: i.string().optional(),
       features_text: i.string().optional(),
     }),
     marketing_intel: i.entity({
+      owner_id: i.string().optional(),
       value_props: i.string().optional(),
       target_personas: i.string().optional(),
       key_messages: i.string().optional(),
@@ -39,27 +43,32 @@ const _schema = i.schema({
       pain_points: i.string().optional(),
     }),
     product_intel: i.entity({
+      owner_id: i.string().optional(),
       feature_summary: i.string().optional(),
       tech_stack: i.string().optional(),
       positioning: i.string().optional(),
     }),
     blog_posts: i.entity({
+      owner_id: i.string().optional(),
       title: i.string(),
       url: i.string().optional(),
       date: i.string().optional(),
       summary: i.string().optional(),
     }),
     events: i.entity({
+      owner_id: i.string().optional(),
       name: i.string(),
       date: i.string().optional(),
       location: i.string().optional(),
       url: i.string().optional(),
     }),
     collections: i.entity({
+      owner_id: i.string().optional(),
       name: i.string(),
       description: i.string().optional(),
     }),
     contacts: i.entity({
+      owner_id: i.string().optional(),
       name: i.string(),
       title: i.string().optional(),
       email: i.string().optional(),
@@ -67,6 +76,7 @@ const _schema = i.schema({
       source_url: i.string().optional(),
     }),
     job_listings: i.entity({
+      owner_id: i.string().optional(),
       title: i.string(),
       location: i.string().optional(),
       department: i.string().optional(),
@@ -74,16 +84,19 @@ const _schema = i.schema({
       posted_date: i.string().optional(),
     }),
     social_profiles: i.entity({
+      owner_id: i.string().optional(),
       platform: i.string(),
       followers_count: i.number().optional(),
       url: i.string(),
     }),
     comparisons: i.entity({
+      owner_id: i.string().optional(),
       type: i.string(),
       data: i.string(),
       created_at: i.string(),
     }),
     reports: i.entity({
+      owner_id: i.string().optional(),
       title: i.string(),
       type: i.string(),
       content: i.string(),

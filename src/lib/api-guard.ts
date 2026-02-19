@@ -13,6 +13,9 @@ type ApiAuthResult =
   | { ok: false; response: NextResponse };
 
 function enforceApiAuth(): boolean {
+  if (process.env.NODE_ENV === "production") {
+    return true;
+  }
   return process.env.MARKETLENS_ENFORCE_API_AUTH !== "false";
 }
 
