@@ -33,7 +33,8 @@ export async function POST(req: NextRequest) {
     const normalizedUrl = validation.normalizedUrl;
 
     const db = getAdminDb();
-    const maxSites = Math.max(Number(process.env.NEXT_PUBLIC_MAX_SITES || "10"), 1);
+    const maxSitesEnv = Number(process.env.NEXT_PUBLIC_MAX_SITES || "10");
+    const maxSites = Number.isFinite(maxSitesEnv) ? Math.max(maxSitesEnv, 1) : 10;
     const existingCompanies = await db.query({
       companies: {
         $: { where: { owner_id: ownerId } },

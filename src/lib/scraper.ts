@@ -1,4 +1,6 @@
 import * as cheerio from "cheerio";
+import type { LookupFunction } from "node:net";
+import { Agent } from "undici";
 import { validateExternalCompanyUrl } from "@/lib/url-safety";
 
 export interface ScrapedPage {
@@ -40,12 +42,31 @@ async function fetchPage(url: string): Promise<ScrapedPage> {
     }
 
     currentUrl = validation.normalizedUrl;
+    const pinnedAddress = validation.resolvedAddresses[0];
 
-    const res = await fetch(currentUrl, {
+    const pinnedLookup: LookupFunction = (_hostname, options, callback) => {
+      if (options?.all) {
+        callback(null, [{ address: pinnedAddress.address, family: pinnedAddress.family }], pinnedAddress.family);
+        return;
+      }
+
+      callback(null, pinnedAddress.address, pinnedAddress.family);
+    };
+
+    const dispatcher = new Agent({
+      connect: {
+        lookup: pinnedLookup,
+      },
+    });
+
+    const fetchInit = {
       headers: { "User-Agent": "MarketLens/1.0" },
       signal: AbortSignal.timeout(30000),
       redirect: "manual",
-    });
+      dispatcher,
+    } as RequestInit & { dispatcher: Agent };
+
+    const res = await fetch(currentUrl, fetchInit).finally(() => dispatcher.close());
 
     if (redirectStatuses.has(res.status)) {
       const location = res.headers.get("location");

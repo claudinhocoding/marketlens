@@ -16,7 +16,7 @@ async function getRefreshToken(): Promise<string | null> {
 export async function postApiJson(path: string, body: unknown): Promise<Response> {
   const token = await getRefreshToken();
 
-  return fetch(path, {
+  const response = await fetch(path, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -24,4 +24,15 @@ export async function postApiJson(path: string, body: unknown): Promise<Response
     },
     body: JSON.stringify(body),
   });
+
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    const message =
+      (payload as { error?: unknown }).error && typeof (payload as { error?: unknown }).error === "string"
+        ? (payload as { error: string }).error
+        : `Request failed (${response.status})`;
+    throw new Error(message);
+  }
+
+  return response;
 }

@@ -59,7 +59,11 @@ const blockedHostnames = new Set([
 ]);
 
 export async function validateExternalCompanyUrl(rawUrl: string): Promise<
-  | { ok: true; normalizedUrl: string }
+  | {
+      ok: true;
+      normalizedUrl: string;
+      resolvedAddresses: { address: string; family: 4 | 6 }[];
+    }
   | { ok: false; error: string }
 > {
   const normalizedUrl = normalizeExternalUrl(rawUrl);
@@ -92,18 +96,40 @@ export async function validateExternalCompanyUrl(rawUrl: string): Promise<
     return { ok: false, error: "Private/local IP addresses are not allowed" };
   }
 
-  try {
-    const records = await lookup(hostname, { all: true, verbatim: true });
-    if (!records.length) {
-      return { ok: false, error: "Unable to resolve host" };
+  let resolvedAddresses: { address: string; family: 4 | 6 }[] = [];
+
+  if (isIP(hostname)) {
+    const family = isIP(hostname);
+    if (family !== 4 && family !== 6) {
+      return { ok: false, error: "Unable to validate host" };
     }
 
-    if (records.some((record) => isPrivateOrLocalIp(record.address))) {
-      return { ok: false, error: "Resolved host points to a private/local IP" };
+    resolvedAddresses = [{ address: hostname, family }];
+  } else {
+    try {
+      const records = await lookup(hostname, { all: true, verbatim: true });
+      if (!records.length) {
+        return { ok: false, error: "Unable to resolve host" };
+      }
+
+      if (records.some((record) => isPrivateOrLocalIp(record.address))) {
+        return { ok: false, error: "Resolved host points to a private/local IP" };
+      }
+
+      resolvedAddresses = records
+        .filter((record) => record.family === 4 || record.family === 6)
+        .map((record) => ({
+          address: record.address,
+          family: record.family as 4 | 6,
+        }));
+    } catch {
+      return { ok: false, error: "Unable to validate host" };
     }
-  } catch {
-    return { ok: false, error: "Unable to validate host" };
   }
 
-  return { ok: true, normalizedUrl: parsed.toString() };
+  if (resolvedAddresses.length === 0) {
+    return { ok: false, error: "Unable to resolve host" };
+  }
+
+  return { ok: true, normalizedUrl: parsed.toString(), resolvedAddresses };
 }

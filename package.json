@@ -12,7 +12,8 @@
     "test:api:extract": "node scripts/test-api-extract.mjs",
     "test:api:compare": "node scripts/test-api-compare.mjs",
     "test:api:report": "node scripts/test-api-report.mjs",
-    "test:api:chat": "node scripts/test-api-chat.mjs"
+    "test:api:chat": "node scripts/test-api-chat.mjs",
+    "backfill:owner": "node scripts/backfill-owner-id.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.74.0",

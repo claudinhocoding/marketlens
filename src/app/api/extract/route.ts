@@ -30,17 +30,12 @@ export async function POST(req: NextRequest) {
 
     const companyLookup = await db.query({
       companies: {
-        $: { where: { id: companyId } },
+        $: { where: { id: companyId, owner_id: ownerId } },
       },
     });
 
-    const company = companyLookup.companies?.[0];
-    if (!company) {
+    if (!companyLookup.companies?.[0]) {
       return NextResponse.json({ error: "Company not found" }, { status: 404 });
-    }
-
-    if (company.owner_id !== ownerId) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const validation = await validateExternalCompanyUrl(url);
