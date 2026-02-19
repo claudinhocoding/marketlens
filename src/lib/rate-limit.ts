@@ -43,8 +43,17 @@ function getClientIp(req: NextRequest): string {
   return xff.split(",")[0].trim() || "unknown";
 }
 
-export function rateLimitIdentifier(req: NextRequest, userId?: string): string {
-  return userId || getClientIp(req);
+export function rateLimitIdentifier(
+  req: NextRequest,
+  userId?: string,
+  isGuest: boolean = false
+): string {
+  const ip = getClientIp(req);
+  if (!userId || isGuest) {
+    return `ip:${ip}`;
+  }
+
+  return `ip:${ip}:user:${userId}`;
 }
 
 export function requireRateLimit(opts: RateLimitOptions): NextResponse | null {

@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
 
     const limited = requireRateLimit({
       bucket: "api:extract",
-      identifier: rateLimitIdentifier(req, ownerId),
+      identifier: rateLimitIdentifier(req, ownerId, Boolean(auth.user.isGuest)),
       limit: 10,
       windowMs: 10 * 60 * 1000,
     });
