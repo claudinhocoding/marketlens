@@ -42,84 +42,100 @@ async function fetchPage(url: string): Promise<ScrapedPage> {
     }
 
     currentUrl = validation.normalizedUrl;
-    const pinnedAddress = validation.resolvedAddresses[0];
+    let redirected = false;
+    let lastFetchError: unknown = null;
 
-    const pinnedLookup: LookupFunction = (_hostname, options, callback) => {
-      if (options?.all) {
-        callback(null, [{ address: pinnedAddress.address, family: pinnedAddress.family }], pinnedAddress.family);
-        return;
-      }
-
-      callback(null, pinnedAddress.address, pinnedAddress.family);
-    };
-
-    const dispatcher = new Agent({
-      connect: {
-        lookup: pinnedLookup,
-      },
-    });
-
-    const fetchInit = {
-      headers: { "User-Agent": "MarketLens/1.0" },
-      signal: AbortSignal.timeout(30000),
-      redirect: "manual",
-      dispatcher,
-    } as RequestInit & { dispatcher: Agent };
-
-    try {
-      const res = await fetch(currentUrl, fetchInit);
-
-      if (redirectStatuses.has(res.status)) {
-        const location = res.headers.get("location");
-        if (!location) {
-          throw new Error("Redirect response missing location header");
+    for (const pinnedAddress of validation.resolvedAddresses) {
+      const pinnedLookup: LookupFunction = (_hostname, options, callback) => {
+        if (options?.all) {
+          callback(null, [{ address: pinnedAddress.address, family: pinnedAddress.family }], pinnedAddress.family);
+          return;
         }
 
-        await res.body?.cancel();
-        currentUrl = new URL(location, currentUrl).toString();
-        continue;
-      }
+        callback(null, pinnedAddress.address, pinnedAddress.family);
+      };
 
-      if (!res.ok) {
-        throw new Error(`Failed to fetch ${currentUrl}: ${res.status}`);
-      }
-
-      const html = await res.text();
-      const $ = cheerio.load(html);
-
-      // Remove scripts/styles
-      $("script, style, noscript, iframe").remove();
-
-      const metadata: Record<string, string> = {};
-      $("meta").each((_, el) => {
-        const name = $(el).attr("name") || $(el).attr("property") || "";
-        const content = $(el).attr("content") || "";
-        if (name && content) metadata[name] = content;
+      const dispatcher = new Agent({
+        connect: {
+          lookup: pinnedLookup,
+        },
       });
 
-      const title = $("title").text().trim() || $("h1").first().text().trim();
-      const description =
-        metadata["description"] || metadata["og:description"] || $("p").first().text().trim().slice(0, 300);
+      const fetchInit = {
+        headers: { "User-Agent": "MarketLens/1.0" },
+        signal: AbortSignal.timeout(30000),
+        redirect: "manual",
+        dispatcher,
+      } as RequestInit & { dispatcher: Agent };
 
-      const text = $("body").text().replace(/\s+/g, " ").trim().slice(0, 50000);
+      try {
+        const res = await fetch(currentUrl, fetchInit);
 
-      const links: string[] = [];
-      $("a[href]").each((_, el) => {
-        const href = $(el).attr("href");
-        if (href) {
-          try {
-            const absolute = new URL(href, currentUrl).href;
-            if (!links.includes(absolute)) links.push(absolute);
-          } catch {
-            // ignore invalid links
+        if (redirectStatuses.has(res.status)) {
+          const location = res.headers.get("location");
+          if (!location) {
+            throw new Error("Redirect response missing location header");
           }
-        }
-      });
 
-      return { url: currentUrl, title, description, text, links, metadata };
-    } finally {
-      await dispatcher.close();
+          await res.body?.cancel();
+          currentUrl = new URL(location, currentUrl).toString();
+          redirected = true;
+          break;
+        }
+
+        if (!res.ok) {
+          throw new Error(`Failed to fetch ${currentUrl}: ${res.status}`);
+        }
+
+        const html = await res.text();
+        const $ = cheerio.load(html);
+
+        // Remove scripts/styles
+        $("script, style, noscript, iframe").remove();
+
+        const metadata: Record<string, string> = {};
+        $("meta").each((_, el) => {
+          const name = $(el).attr("name") || $(el).attr("property") || "";
+          const content = $(el).attr("content") || "";
+          if (name && content) metadata[name] = content;
+        });
+
+        const title = $("title").text().trim() || $("h1").first().text().trim();
+        const description =
+          metadata["description"] || metadata["og:description"] || $("p").first().text().trim().slice(0, 300);
+
+        const text = $("body").text().replace(/\s+/g, " ").trim().slice(0, 50000);
+
+        const links: string[] = [];
+        $("a[href]").each((_, el) => {
+          const href = $(el).attr("href");
+          if (href) {
+            try {
+              const absolute = new URL(href, currentUrl).href;
+              if (!links.includes(absolute)) links.push(absolute);
+            } catch {
+              // ignore invalid links
+            }
+          }
+        });
+
+        return { url: currentUrl, title, description, text, links, metadata };
+      } catch (err) {
+        lastFetchError = err;
+      } finally {
+        await dispatcher.close();
+      }
     }
+
+    if (redirected) {
+      continue;
+    }
+
+    if (lastFetchError) {
+      throw lastFetchError;
+    }
+
+    throw new Error(`Unable to fetch ${currentUrl}`);
   }
 
   throw new Error("Too many redirects while fetching page");
