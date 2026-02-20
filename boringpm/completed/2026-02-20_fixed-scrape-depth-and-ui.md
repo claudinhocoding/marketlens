@@ -2,10 +2,10 @@
 
 ## Metadata
 - Spec File: `2026-02-20_fixed-scrape-depth-and-ui.md`
-- Status: `Ready for Review`
+- Status: `Merged`
 - Owner: `windows95`
 - Reviewer Subagent: `reviewer`
-- Branch: `feat/fix-scrape-depth-5`
+- Branch: `feat/fix-scrape-depth-5` (deleted)
 - PR: `https://github.com/claudinhocoding/marketlens/pull/3`
 - Last Updated: 2026-02-20
 
@@ -66,9 +66,9 @@ The dashboard currently lets users choose scrape depth 1-5. Product direction is
     "createdTimestamp": "2026-02-20T19:45:00Z",
     "name": "Validate, review, and merge",
     "description": "Run checks, open PR, run reviewer subagent, address comments, and merge.",
-    "status": "in_progress",
-    "completionTimestamp": "",
-    "commitHash": ""
+    "status": "completed",
+    "completionTimestamp": "2026-02-20T03:26:00Z",
+    "commitHash": "456965f"
   }
 ]
 ```
@@ -84,3 +84,4 @@ The dashboard currently lets users choose scrape depth 1-5. Product direction is
 - 2026-02-20: Added `DEFAULT_SCRAPE_DEPTH` and crawl budget enforcement (`MARKETLENS_SCRAPE_BUDGET_MS`) with partial-result truncation metadata.
 - 2026-02-20: Social profile extraction remains link-pattern based for LinkedIn, Twitter/X, YouTube, Facebook, and GitHub.
 - 2026-02-20: Validation completed with lint, build, and full API smoke run.
+- 2026-02-20: PR #3 merged (commit `456965f`), bd issue `marketlens-8` closed, and spec moved to `boringpm/completed/`.
