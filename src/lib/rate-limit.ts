@@ -45,11 +45,15 @@ function enforceRateLimit(): boolean {
   return process.env.MARKETLENS_ENFORCE_RATE_LIMIT !== "false";
 }
 
+function hashText(value: string): string {
+  return createHash("sha256").update(value).digest("hex");
+}
+
 function normalizeIdentifier(identifier: string): string {
   const trimmed = identifier.trim() || "unknown";
   if (trimmed.length <= 128) return trimmed;
 
-  return createHash("sha256").update(trimmed).digest("hex");
+  return hashText(trimmed);
 }
 
 function getBucketKey({ bucket, identifier }: Pick<RateLimitOptions, "bucket" | "identifier">) {
@@ -74,22 +78,36 @@ function getClientIp(req: NextRequest): string {
   return "unknown";
 }
 
+function requestFingerprint(req: NextRequest): string {
+  const parts = [
+    req.headers.get("user-agent") || "",
+    req.headers.get("accept-language") || "",
+    req.headers.get("sec-ch-ua") || "",
+    req.headers.get("sec-ch-ua-platform") || "",
+  ];
+  const raw = parts.join("|");
+  if (!raw.trim()) return "unknown";
+
+  return hashText(raw).slice(0, 24);
+}
+
 export function rateLimitIdentifier(
   req: NextRequest,
   userId?: string,
   isGuest: boolean = false
 ): string {
   const ip = getClientIp(req);
+  const fingerprint = requestFingerprint(req);
 
   if (!userId) {
-    return `ip:${ip}`;
+    return ip === "unknown" ? `anon-fp:${fingerprint}` : `ip:${ip}`;
   }
 
   if (isGuest) {
-    return ip === "unknown" ? `guest:${userId}` : `ip:${ip}`;
+    return ip === "unknown" ? `guest-fp:${fingerprint}` : `ip:${ip}`;
   }
 
-  return `ip:${ip}:user:${userId}`;
+  return ip === "unknown" ? `user:${userId}` : `ip:${ip}:user:${userId}`;
 }
 
 export function requireRateLimit(opts: RateLimitOptions): NextResponse | null {
