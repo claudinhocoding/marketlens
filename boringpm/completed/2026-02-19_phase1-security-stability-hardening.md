@@ -2,12 +2,12 @@
 
 ## Metadata
 - Spec File: `2026-02-19_phase1-security-stability-hardening.md`
-- Status: `Ready for Review`
+- Status: `Merged`
 - Owner: `windows95`
 - Reviewer Subagent: `reviewer`
-- Branch: `feat/refactor-security-stability-phase1`
+- Branch: `feat/refactor-security-stability-phase1` (deleted)
 - PR: `https://github.com/claudinhocoding/marketlens/pull/2`
-- Last Updated: 2026-02-19
+- Last Updated: 2026-02-20
 
 ## Problem Statement
 MarketLens currently has three critical hardening gaps:
@@ -110,9 +110,9 @@ Implement a focused Phase 1 hardening pass that:
     "createdTimestamp": "2026-02-19T20:00:00Z",
     "name": "Run validation, open PR, and complete review workflow",
     "description": "Run required checks, update spec, open PR linked to spec, request subagent review, address comments, and merge.",
-    "status": "in_progress",
-    "completionTimestamp": "",
-    "commitHash": ""
+    "status": "completed",
+    "completionTimestamp": "2026-02-20T02:06:00Z",
+    "commitHash": "c70b0c6"
   }
 ]
 ```
@@ -137,3 +137,4 @@ Implement a focused Phase 1 hardening pass that:
   - `npm run build` ✅
   - `API_TEST_URL=https://www.intercom.com API_TEST_TIMEOUT_MS=600000 npm run test:api` ✅
   - Manual checks: unauthenticated `/api/chat` => `401`; burst `/api/scrape` => `429` on request 7.
+- 2026-02-20: PR #2 merged (merge commit `c70b0c6`), bd issues `marketlens-7` and `marketlens-1` closed, spec moved to `boringpm/completed/`.
