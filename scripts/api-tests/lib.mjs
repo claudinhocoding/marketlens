@@ -6,7 +6,6 @@ function createContext(overrides = {}) {
   return {
     baseUrl: process.env.API_BASE_URL || "http://localhost:4001",
     targetUrl: process.env.API_TEST_URL || "https://example.com",
-    depth: Number(process.env.API_TEST_DEPTH || "1"),
     timeoutMs: Number(process.env.API_TEST_TIMEOUT_MS || "240000"),
     chatMessage:
       process.env.API_TEST_CHAT_MESSAGE ||
@@ -115,7 +114,6 @@ async function ensureCompanyId(ctx) {
 export async function testScrape(ctx) {
   const data = await postJson(ctx, "/api/scrape", {
     url: ctx.targetUrl,
-    depth: Math.min(Math.max(Number(ctx.depth) || 1, 1), 5),
   });
 
   assert(data.success === true, "Expected success=true from /api/scrape");

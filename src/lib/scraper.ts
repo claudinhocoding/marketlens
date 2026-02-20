@@ -28,14 +28,32 @@ export interface ScrapedSite {
   socialProfiles: SocialProfile[];
   thumbnailUrl?: string;
   jobPages: ScrapedPage[];
+  crawlTruncated?: boolean;
+  crawlElapsedMs?: number;
 }
 
 const redirectStatuses = new Set([301, 302, 303, 307, 308]);
 
-async function fetchPage(url: string): Promise<ScrapedPage> {
+const MAX_SCRAPE_DEPTH = 5;
+export const DEFAULT_SCRAPE_DEPTH = MAX_SCRAPE_DEPTH;
+
+const scrapeBudgetEnv = Number(process.env.MARKETLENS_SCRAPE_BUDGET_MS || "90000");
+const DEFAULT_SCRAPE_BUDGET_MS = Number.isFinite(scrapeBudgetEnv)
+  ? Math.max(5000, scrapeBudgetEnv)
+  : 90000;
+
+async function fetchPage(url: string, deadlineMs?: number): Promise<ScrapedPage> {
   let currentUrl = url;
 
+  const assertWithinBudget = () => {
+    if (deadlineMs != null && Date.now() >= deadlineMs) {
+      throw new Error("Scrape crawl budget exceeded");
+    }
+  };
+
   for (let redirectHop = 0; redirectHop < 5; redirectHop++) {
+    assertWithinBudget();
+
     const validation = await validateExternalCompanyUrl(currentUrl);
     if (!validation.ok) {
       throw new Error(validation.error);
@@ -46,6 +64,8 @@ async function fetchPage(url: string): Promise<ScrapedPage> {
     let lastFetchError: unknown = null;
 
     for (const pinnedAddress of validation.resolvedAddresses) {
+      assertWithinBudget();
+
       const pinnedLookup: LookupFunction = (_hostname, options, callback) => {
         if (options?.all) {
           callback(null, [{ address: pinnedAddress.address, family: pinnedAddress.family }], pinnedAddress.family);
@@ -61,9 +81,15 @@ async function fetchPage(url: string): Promise<ScrapedPage> {
         },
       });
 
+      const remainingMs = deadlineMs != null ? deadlineMs - Date.now() : 30000;
+      if (remainingMs <= 0) {
+        await dispatcher.close();
+        throw new Error("Scrape crawl budget exceeded");
+      }
+
       const fetchInit = {
         headers: { "User-Agent": "MarketLens/1.0" },
-        signal: AbortSignal.timeout(30000),
+        signal: AbortSignal.timeout(Math.min(30000, Math.max(1, remainingMs))),
         redirect: "manual",
         dispatcher,
       } as RequestInit & { dispatcher: Agent };
@@ -200,10 +226,19 @@ function findJobPages(links: string[], baseUrl: string): string[] {
   return found.slice(0, 5);
 }
 
-/** Scrape a website with configurable depth (1-5 levels of link following) */
-export async function scrapeWebsite(url: string, depth: number = 1): Promise<ScrapedSite> {
-  depth = Math.min(Math.max(depth, 1), 5);
-  const mainPage = await fetchPage(url);
+/** Scrape a website with configurable depth (1-5 levels of link following). Defaults to policy depth. */
+export async function scrapeWebsite(
+  url: string,
+  depth: number = DEFAULT_SCRAPE_DEPTH
+): Promise<ScrapedSite> {
+  depth = Math.min(Math.max(depth, 1), MAX_SCRAPE_DEPTH);
+
+  const crawlStartedAt = Date.now();
+  const crawlDeadlineMs = crawlStartedAt + DEFAULT_SCRAPE_BUDGET_MS;
+  let crawlTruncated = false;
+  const crawlBudgetExceeded = () => Date.now() >= crawlDeadlineMs;
+
+  const mainPage = await fetchPage(url, crawlDeadlineMs);
   const allLinks = [...mainPage.links];
   const subPageUrls = findSubPages(mainPage.links, url);
 
@@ -212,34 +247,60 @@ export async function scrapeWebsite(url: string, depth: number = 1): Promise<Scr
 
   // Depth 1: scrape subPages normally
   for (const subUrl of subPageUrls) {
+    if (crawlBudgetExceeded()) {
+      crawlTruncated = true;
+      break;
+    }
     if (visited.has(subUrl)) continue;
     visited.add(subUrl);
     try {
-      const page = await fetchPage(subUrl);
+      const page = await fetchPage(subUrl, crawlDeadlineMs);
       subPages.push(page);
       allLinks.push(...page.links);
     } catch {}
   }
 
   // Additional depth levels
-  if (depth > 1) {
-    let frontier = subPages.flatMap(p => p.links).filter(l => {
-      try { return new URL(l).hostname === new URL(url).hostname; } catch { return false; }
+  if (depth > 1 && !crawlTruncated) {
+    let frontier = subPages.flatMap((p) => p.links).filter((l) => {
+      try {
+        return new URL(l).hostname === new URL(url).hostname;
+      } catch {
+        return false;
+      }
     });
+
     for (let d = 2; d <= depth && frontier.length > 0; d++) {
+      if (crawlBudgetExceeded()) {
+        crawlTruncated = true;
+        break;
+      }
+
       const nextFrontier: string[] = [];
       for (const link of frontier.slice(0, 10)) {
+        if (crawlBudgetExceeded()) {
+          crawlTruncated = true;
+          break;
+        }
+
         if (visited.has(link)) continue;
         visited.add(link);
         try {
-          const page = await fetchPage(link);
+          const page = await fetchPage(link, crawlDeadlineMs);
           subPages.push(page);
           allLinks.push(...page.links);
           nextFrontier.push(...page.links);
         } catch {}
       }
-      frontier = nextFrontier.filter(l => {
-        try { return new URL(l).hostname === new URL(url).hostname; } catch { return false; }
+
+      if (crawlTruncated) break;
+
+      frontier = nextFrontier.filter((l) => {
+        try {
+          return new URL(l).hostname === new URL(url).hostname;
+        } catch {
+          return false;
+        }
       });
     }
   }
@@ -248,10 +309,15 @@ export async function scrapeWebsite(url: string, depth: number = 1): Promise<Scr
   const jobPageUrls = findJobPages(allLinks, url);
   const jobPages: ScrapedPage[] = [];
   for (const jobUrl of jobPageUrls) {
+    if (crawlBudgetExceeded()) {
+      crawlTruncated = true;
+      break;
+    }
+
     if (visited.has(jobUrl)) continue;
     visited.add(jobUrl);
     try {
-      jobPages.push(await fetchPage(jobUrl));
+      jobPages.push(await fetchPage(jobUrl, crawlDeadlineMs));
     } catch {}
   }
 
@@ -270,5 +336,7 @@ export async function scrapeWebsite(url: string, depth: number = 1): Promise<Scr
     socialProfiles,
     thumbnailUrl,
     jobPages,
+    crawlTruncated,
+    crawlElapsedMs: Date.now() - crawlStartedAt,
   };
 }

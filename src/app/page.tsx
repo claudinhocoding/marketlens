@@ -15,7 +15,6 @@ export default function Dashboard() {
   const [showAdd, setShowAdd] = useState(false);
   const [url, setUrl] = useState("");
   const [scraping, setScraping] = useState(false);
-  const [depth, setDepth] = useState(1);
   const [newCollName, setNewCollName] = useState("");
   const [showNewColl, setShowNewColl] = useState(false);
   const [selectedCollection, setSelectedCollection] = useState<string | null>(null);
@@ -56,7 +55,7 @@ export default function Dashboard() {
     if (!url.trim()) return;
     setScraping(true);
     try {
-      await postApiJson("/api/scrape", { url: url.trim(), depth });
+      await postApiJson("/api/scrape", { url: url.trim() });
       setUrl("");
       setShowAdd(false);
     } catch {} finally {
@@ -149,11 +148,6 @@ export default function Dashboard() {
             </div>
             <div className="flex gap-3">
               <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://competitor.com" className="flex-1 bg-background border border-border rounded-lg px-4 py-2 text-sm outline-none focus:border-accent" />
-              <select value={depth} onChange={(e) => setDepth(Number(e.target.value))} className="bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none">
-                {[1, 2, 3, 4, 5].map((d) => (
-                  <option key={d} value={d}>Depth {d}</option>
-                ))}
-              </select>
               <button onClick={handleScrape} disabled={scraping || companies.length >= maxSites} className="bg-accent hover:bg-accent-hover disabled:opacity-50 text-white px-5 py-2 rounded-lg text-sm font-medium">
                 {scraping ? "Scraping…" : "Scrape & Add"}
               </button>
