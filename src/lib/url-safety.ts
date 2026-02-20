@@ -30,6 +30,29 @@ function isPrivateIpv4(address: string): boolean {
   return false;
 }
 
+function parseIpv6MappedIpv4(mapped: string): string | null {
+  if (isIP(mapped) === 4) {
+    return mapped;
+  }
+
+  const segments = mapped.split(":").filter(Boolean);
+  if (segments.length !== 2) {
+    return null;
+  }
+
+  const bytes: number[] = [];
+  for (const segment of segments) {
+    if (!/^[0-9a-f]{1,4}$/i.test(segment)) {
+      return null;
+    }
+
+    const value = Number.parseInt(segment, 16);
+    bytes.push((value >> 8) & 0xff, value & 0xff);
+  }
+
+  return bytes.join(".");
+}
+
 function isPrivateIpv6(address: string): boolean {
   const normalized = address.toLowerCase().split("%")[0];
 
@@ -38,7 +61,9 @@ function isPrivateIpv6(address: string): boolean {
   if (normalized.startsWith("fc") || normalized.startsWith("fd")) return true;
   if (normalized.startsWith("::ffff:")) {
     const mapped = normalized.replace("::ffff:", "");
-    if (isIP(mapped) === 4) return isPrivateIpv4(mapped);
+    const mappedIpv4 = parseIpv6MappedIpv4(mapped);
+    if (!mappedIpv4) return true;
+    return isPrivateIpv4(mappedIpv4);
   }
 
   return false;
