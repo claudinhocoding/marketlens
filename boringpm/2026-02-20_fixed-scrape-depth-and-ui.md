@@ -31,14 +31,14 @@ The dashboard currently lets users choose scrape depth 1-5. Product direction is
 
 ## Testing Criteria (Required)
 ### Automated Checks
-- [ ] Lint passes (`npm run lint`)
-- [ ] Build passes (`npm run build`)
-- [ ] API smoke tests pass (`API_TEST_URL=https://www.intercom.com API_TEST_TIMEOUT_MS=600000 npm run test:api`)
+- [x] Lint passes (`npm run lint`)
+- [x] Build passes (`npm run build`)
+- [x] API smoke tests pass (`API_TEST_URL=https://www.intercom.com API_TEST_TIMEOUT_MS=600000 npm run test:api`)
 
 ### Manual Verification
-- [ ] Dashboard add-company flow has no depth dropdown.
-- [ ] `/api/scrape` still succeeds and returns populated `subPages`.
-- [ ] Social profile extraction still returns LinkedIn/Twitter/X/YouTube/Facebook/GitHub when present.
+- [x] Dashboard add-company flow has no depth dropdown.
+- [x] `/api/scrape` still succeeds and returns populated `subPages`.
+- [x] Social profile extraction still returns LinkedIn/Twitter/X/YouTube/Facebook/GitHub when present.
 
 ### Evidence
 - [ ] Test output attached to PR
@@ -50,23 +50,23 @@ The dashboard currently lets users choose scrape depth 1-5. Product direction is
     "createdTimestamp": "2026-02-20T19:45:00Z",
     "name": "Create spec and issue tracking",
     "description": "Add boringpm spec and create bd issue for fixed-depth scrape change.",
-    "status": "pending",
-    "completionTimestamp": "",
-    "commitHash": ""
+    "status": "completed",
+    "completionTimestamp": "2026-02-20T02:39:00Z",
+    "commitHash": "829fc56"
   },
   {
     "createdTimestamp": "2026-02-20T19:45:00Z",
     "name": "Remove depth selector and enforce depth 5 on scrape API",
     "description": "Simplify dashboard input and force backend scrape depth to 5.",
-    "status": "pending",
-    "completionTimestamp": "",
-    "commitHash": ""
+    "status": "completed",
+    "completionTimestamp": "2026-02-20T02:41:00Z",
+    "commitHash": "9a6b4ed"
   },
   {
     "createdTimestamp": "2026-02-20T19:45:00Z",
     "name": "Validate, review, and merge",
     "description": "Run checks, open PR, run reviewer subagent, address comments, and merge.",
-    "status": "pending",
+    "status": "in_progress",
     "completionTimestamp": "",
     "commitHash": ""
   }
@@ -78,3 +78,6 @@ The dashboard currently lets users choose scrape depth 1-5. Product direction is
 
 ## Implementation Notes
 - 2026-02-20: Spec initialized for fixed-depth scrape behavior.
+- 2026-02-20: Removed depth dropdown from dashboard and forced depth 5 in `/api/scrape` and `/api/extract`.
+- 2026-02-20: Social profile extraction remains link-pattern based for LinkedIn, Twitter/X, YouTube, Facebook, and GitHub.
+- 2026-02-20: Validation completed with lint, build, and full API smoke run.
