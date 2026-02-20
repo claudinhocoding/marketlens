@@ -2,11 +2,11 @@
 
 ## Metadata
 - Spec File: `2026-02-20_fixed-scrape-depth-and-ui.md`
-- Status: `In Progress`
+- Status: `Ready for Review`
 - Owner: `windows95`
 - Reviewer Subagent: `reviewer`
 - Branch: `feat/fix-scrape-depth-5`
-- PR: `TBD`
+- PR: `https://github.com/claudinhocoding/marketlens/pull/3`
 - Last Updated: 2026-02-20
 
 ## Problem Statement
@@ -41,7 +41,7 @@ The dashboard currently lets users choose scrape depth 1-5. Product direction is
 - [x] Social profile extraction still returns LinkedIn/Twitter/X/YouTube/Facebook/GitHub when present.
 
 ### Evidence
-- [ ] Test output attached to PR
+- [x] Test output attached to PR
 
 ## Tasks
 ```json
@@ -74,10 +74,13 @@ The dashboard currently lets users choose scrape depth 1-5. Product direction is
 ```
 
 ## PR Review Comments
-- Pending.
+- [NON-BLOCKING] Avoid duplicated depth policy literals; centralize depth constant.
+- [NON-BLOCKING] Add crawl wall-clock budget handling to reduce timeout risk on deep crawls.
+- [APPROVAL] Final reviewer pass: approved with no critical blockers.
 
 ## Implementation Notes
 - 2026-02-20: Spec initialized for fixed-depth scrape behavior.
-- 2026-02-20: Removed depth dropdown from dashboard and forced depth 5 in `/api/scrape` and `/api/extract`.
+- 2026-02-20: Removed depth dropdown from dashboard and forced depth policy for `/api/scrape` and `/api/extract`.
+- 2026-02-20: Added `DEFAULT_SCRAPE_DEPTH` and crawl budget enforcement (`MARKETLENS_SCRAPE_BUDGET_MS`) with partial-result truncation metadata.
 - 2026-02-20: Social profile extraction remains link-pattern based for LinkedIn, Twitter/X, YouTube, Facebook, and GitHub.
 - 2026-02-20: Validation completed with lint, build, and full API smoke run.
