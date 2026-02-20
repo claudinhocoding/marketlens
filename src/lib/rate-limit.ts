@@ -80,8 +80,13 @@ export function rateLimitIdentifier(
   isGuest: boolean = false
 ): string {
   const ip = getClientIp(req);
-  if (!userId || isGuest) {
+
+  if (!userId) {
     return `ip:${ip}`;
+  }
+
+  if (isGuest) {
+    return ip === "unknown" ? `guest:${userId}` : `ip:${ip}`;
   }
 
   return `ip:${ip}:user:${userId}`;

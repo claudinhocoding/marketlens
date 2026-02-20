@@ -3,10 +3,15 @@ import { init } from "@instantdb/admin";
 
 const appId = process.env.NEXT_PUBLIC_INSTANT_APP_ID;
 const adminToken = process.env.INSTANT_APP_ADMIN_TOKEN;
-const legacyOwnerEmail = process.env.LEGACY_OWNER_EMAIL || "legacy-owner@marketlens.local";
+const legacyOwnerEmail = process.env.LEGACY_OWNER_EMAIL;
 
 if (!appId || !adminToken) {
   console.error("Missing NEXT_PUBLIC_INSTANT_APP_ID or INSTANT_APP_ADMIN_TOKEN");
+  process.exit(1);
+}
+
+if (!legacyOwnerEmail) {
+  console.error("LEGACY_OWNER_EMAIL is required (no default fallback).");
   process.exit(1);
 }
 
