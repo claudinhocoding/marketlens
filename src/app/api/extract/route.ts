@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
     }
 
     const normalizedUrl = validation.normalizedUrl;
-    const scraped = await scrapeWebsite(normalizedUrl);
+    const scraped = await scrapeWebsite(normalizedUrl, 5);
     const allText = [scraped.mainPage.text, ...scraped.subPages.map((p) => p.text)].join("\n\n");
     const extracted = await extractAll(allText);
 

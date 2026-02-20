@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
     });
     if (limited) return limited;
 
-    const { url, depth } = await req.json();
+    const { url } = await req.json();
     if (!url) return NextResponse.json({ error: "URL required" }, { status: 400 });
 
     const validation = await validateExternalCompanyUrl(url);
@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const scraped = await scrapeWebsite(normalizedUrl, Math.min(Math.max(depth || 1, 1), 5));
+    const scraped = await scrapeWebsite(normalizedUrl, 5);
 
     // Combine all text for extraction
     const allText = [scraped.mainPage.text, ...scraped.subPages.map((p) => p.text)].join("\n\n");

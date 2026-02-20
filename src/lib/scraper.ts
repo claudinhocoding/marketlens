@@ -200,8 +200,8 @@ function findJobPages(links: string[], baseUrl: string): string[] {
   return found.slice(0, 5);
 }
 
-/** Scrape a website with configurable depth (1-5 levels of link following) */
-export async function scrapeWebsite(url: string, depth: number = 1): Promise<ScrapedSite> {
+/** Scrape a website with configurable depth (1-5 levels of link following). Defaults to 5. */
+export async function scrapeWebsite(url: string, depth: number = 5): Promise<ScrapedSite> {
   depth = Math.min(Math.max(depth, 1), 5);
   const mainPage = await fetchPage(url);
   const allLinks = [...mainPage.links];
