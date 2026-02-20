@@ -79,10 +79,10 @@ Optional environment overrides:
 
 - `API_BASE_URL` (default: `http://localhost:4001`)
 - `API_TEST_URL` (default: `https://example.com`)
-- `API_TEST_DEPTH` (default: `1`)
 - `API_TEST_COMPANY_ID` (reuse an existing company for extract/report tests)
 - `API_TEST_TIMEOUT_MS` (default: `240000`)
 - `API_TEST_CHAT_MESSAGE` (custom prompt for chat test)
+- `MARKETLENS_SCRAPE_BUDGET_MS` (default: `90000`, max wall-clock crawl budget)
 
 ## TypeScript Modules
 
