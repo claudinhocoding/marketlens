@@ -10,6 +10,14 @@ import {
 
 export async function POST(req: NextRequest) {
   try {
+    const preAuthLimited = requireRateLimit({
+      bucket: "api:chat:preauth",
+      identifier: rateLimitIdentifier(req),
+      limit: 240,
+      windowMs: 5 * 60 * 1000,
+    });
+    if (preAuthLimited) return preAuthLimited;
+
     const auth = await requireApiAuth(req);
     if (!auth.ok) return auth.response;
 

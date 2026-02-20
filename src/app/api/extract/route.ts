@@ -13,6 +13,14 @@ import { validateExternalCompanyUrl } from "@/lib/url-safety";
 
 export async function POST(req: NextRequest) {
   try {
+    const preAuthLimited = requireRateLimit({
+      bucket: "api:extract:preauth",
+      identifier: rateLimitIdentifier(req),
+      limit: 30,
+      windowMs: 10 * 60 * 1000,
+    });
+    if (preAuthLimited) return preAuthLimited;
+
     const auth = await requireApiAuth(req);
     if (!auth.ok) return auth.response;
 
