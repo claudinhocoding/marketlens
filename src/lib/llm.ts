@@ -30,7 +30,9 @@ export async function askClaude({
 }
 
 function parseJsonCandidate(text: string): unknown {
-  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  const trimmed = text.trim();
+
+  const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/);
   if (fenced?.[1]) {
     try {
       return JSON.parse(fenced[1]);
@@ -39,16 +41,13 @@ function parseJsonCandidate(text: string): unknown {
     }
   }
 
-  const objectMatch = text.match(/(\{[\s\S]*\})/);
-  if (objectMatch?.[1]) {
-    try {
-      return JSON.parse(objectMatch[1]);
-    } catch {
-      // fall through
-    }
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    // fall through
   }
 
-  const arrayMatch = text.match(/(\[[\s\S]*\])/);
+  const arrayMatch = trimmed.match(/(\[[\s\S]*\])/);
   if (arrayMatch?.[1]) {
     try {
       return JSON.parse(arrayMatch[1]);
@@ -57,11 +56,16 @@ function parseJsonCandidate(text: string): unknown {
     }
   }
 
-  try {
-    return JSON.parse(text);
-  } catch {
-    return null;
+  const objectMatch = trimmed.match(/(\{[\s\S]*\})/);
+  if (objectMatch?.[1]) {
+    try {
+      return JSON.parse(objectMatch[1]);
+    } catch {
+      // fall through
+    }
   }
+
+  return null;
 }
 
 export function parseWithSchema<T>(
