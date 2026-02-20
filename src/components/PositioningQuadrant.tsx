@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { postApiJson } from "@/lib/api-client";
 
 interface Company {
   id: string;
@@ -12,12 +13,6 @@ interface PositioningQuadrantProps {
 }
 
 const axisOptions = ["Product Completeness", "Growth Momentum", "Market Reach", "Feature Depth"];
-const quadrantLabels = [
-  { label: "Rising Stars", x: "left", y: "top" },
-  { label: "Market Leaders", x: "right", y: "top" },
-  { label: "Early Stage", x: "left", y: "bottom" },
-  { label: "Established", x: "right", y: "bottom" },
-];
 
 interface CompanyScore {
   name: string;
@@ -34,11 +29,7 @@ export default function PositioningQuadrant({ companies }: PositioningQuadrantPr
   const analyze = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/compare", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "positioning", xAxis, yAxis }),
-      });
+      const res = await postApiJson("/api/compare", { type: "positioning", xAxis, yAxis });
       const data = await res.json();
       if (data.comparison?.positioning) {
         setScores(data.comparison.positioning);

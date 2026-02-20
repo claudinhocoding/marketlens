@@ -1,6 +1,7 @@
 "use client";
 
 import { db } from "@/lib/db";
+import { postApiJson } from "@/lib/api-client";
 import { useState } from "react";
 import FeatureMatrix from "@/components/FeatureMatrix";
 import TargetingHeatmap from "@/components/TargetingHeatmap";
@@ -32,7 +33,7 @@ export default function ComparePage() {
   const runComparison = async () => {
     setRunning(true);
     try {
-      await fetch("/api/compare", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}) });
+      await postApiJson("/api/compare", {});
     } catch {} finally {
       setRunning(false);
     }

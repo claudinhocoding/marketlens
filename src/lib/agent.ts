@@ -1,7 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-const model = process.env.ML_CLAUDE_MODEL || "claude-sonnet-4-5-20250929";
+import { askClaude } from "@/lib/llm";
 
 const SYSTEM_PROMPT = `You are a competitive intelligence analyst assistant for MarketLens. You help users understand competitive landscapes, analyze companies, compare features, and develop strategy.
 
@@ -28,16 +26,12 @@ export async function handleQuery(
       role: m.role as "user" | "assistant",
       content: m.content,
     })),
-    { role: "user" as const, content: message },
+    { role: "user", content: message },
   ];
 
-  const res = await client.messages.create({
-    model,
-    max_tokens: 4096,
+  return askClaude({
     system: systemWithContext,
     messages,
+    maxTokens: 4096,
   });
-
-  const block = res.content[0];
-  return block.type === "text" ? block.text : "";
 }

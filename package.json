@@ -12,7 +12,8 @@
     "test:api:extract": "node scripts/test-api-extract.mjs",
     "test:api:compare": "node scripts/test-api-compare.mjs",
     "test:api:report": "node scripts/test-api-report.mjs",
-    "test:api:chat": "node scripts/test-api-chat.mjs"
+    "test:api:chat": "node scripts/test-api-chat.mjs",
+    "backfill:owner": "node scripts/backfill-owner-id.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.74.0",
@@ -21,13 +22,18 @@
     "cheerio": "^1.2.0",
     "next": "15.4.10",
     "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "react-dom": "19.1.0",
+    "undici": "^7.22.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "dotenv": "^17.3.1",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^15.4.10",
     "tailwindcss": "^4",
     "typescript": "^5.9.3"
   },

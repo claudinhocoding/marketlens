@@ -2,23 +2,48 @@
 
 import type { InstantRules } from "@instantdb/react";
 
+const canViewOwned = "auth.id != null && data.owner_id == auth.id";
+const canCreateOwned = "auth.id != null && newData.owner_id == auth.id";
+const canUpdateOwned = "auth.id != null && data.owner_id == auth.id && newData.owner_id == auth.id";
+const canDeleteOwned = "auth.id != null && data.owner_id == auth.id";
+
+const ownedEntityRules = {
+  allow: {
+    view: canViewOwned,
+    create: canCreateOwned,
+    update: canUpdateOwned,
+    delete: canDeleteOwned,
+  },
+};
+
 const rules = {
-  /**
-   * Welcome to Instant's permission system!
-   * Right now your rules are empty. To start filling them in, check out the docs:
-   * https://www.instantdb.com/docs/permissions
-   *
-   * Here's an example to give you a feel:
-   * posts: {
-   *   allow: {
-   *     view: "true",
-   *     create: "isOwner",
-   *     update: "isOwner",
-   *     delete: "isOwner",
-   *   },
-   *   bind: ["isOwner", "auth.id != null && auth.id == data.ownerId"],
-   * },
-   */
+  $users: {
+    allow: {
+      view: "auth.id == data.id",
+      update: "auth.id == data.id",
+    },
+  },
+  $files: {
+    allow: {
+      view: "false",
+      create: "false",
+      update: "false",
+      delete: "false",
+    },
+  },
+  companies: ownedEntityRules,
+  features: ownedEntityRules,
+  pricing_tiers: ownedEntityRules,
+  marketing_intel: ownedEntityRules,
+  product_intel: ownedEntityRules,
+  blog_posts: ownedEntityRules,
+  events: ownedEntityRules,
+  collections: ownedEntityRules,
+  contacts: ownedEntityRules,
+  job_listings: ownedEntityRules,
+  social_profiles: ownedEntityRules,
+  comparisons: ownedEntityRules,
+  reports: ownedEntityRules,
 } satisfies InstantRules;
 
 export default rules;

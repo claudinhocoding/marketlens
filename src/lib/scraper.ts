@@ -1,4 +1,7 @@
 import * as cheerio from "cheerio";
+import type { LookupFunction } from "node:net";
+import { Agent } from "undici";
+import { validateExternalCompanyUrl } from "@/lib/url-safety";
 
 export interface ScrapedPage {
   url: string;
@@ -27,42 +30,115 @@ export interface ScrapedSite {
   jobPages: ScrapedPage[];
 }
 
+const redirectStatuses = new Set([301, 302, 303, 307, 308]);
+
 async function fetchPage(url: string): Promise<ScrapedPage> {
-  const res = await fetch(url, {
-    headers: { "User-Agent": "MarketLens/1.0" },
-    signal: AbortSignal.timeout(30000),
-  });
-  const html = await res.text();
-  const $ = cheerio.load(html);
+  let currentUrl = url;
 
-  // Remove scripts/styles
-  $("script, style, noscript, iframe").remove();
-
-  const metadata: Record<string, string> = {};
-  $("meta").each((_, el) => {
-    const name = $(el).attr("name") || $(el).attr("property") || "";
-    const content = $(el).attr("content") || "";
-    if (name && content) metadata[name] = content;
-  });
-
-  const title = $("title").text().trim() || $("h1").first().text().trim();
-  const description =
-    metadata["description"] || metadata["og:description"] || $("p").first().text().trim().slice(0, 300);
-
-  const text = $("body").text().replace(/\s+/g, " ").trim().slice(0, 50000);
-
-  const links: string[] = [];
-  $("a[href]").each((_, el) => {
-    const href = $(el).attr("href");
-    if (href) {
-      try {
-        const absolute = new URL(href, url).href;
-        if (!links.includes(absolute)) links.push(absolute);
-      } catch {}
+  for (let redirectHop = 0; redirectHop < 5; redirectHop++) {
+    const validation = await validateExternalCompanyUrl(currentUrl);
+    if (!validation.ok) {
+      throw new Error(validation.error);
     }
-  });
 
-  return { url, title, description, text, links, metadata };
+    currentUrl = validation.normalizedUrl;
+    let redirected = false;
+    let lastFetchError: unknown = null;
+
+    for (const pinnedAddress of validation.resolvedAddresses) {
+      const pinnedLookup: LookupFunction = (_hostname, options, callback) => {
+        if (options?.all) {
+          callback(null, [{ address: pinnedAddress.address, family: pinnedAddress.family }], pinnedAddress.family);
+          return;
+        }
+
+        callback(null, pinnedAddress.address, pinnedAddress.family);
+      };
+
+      const dispatcher = new Agent({
+        connect: {
+          lookup: pinnedLookup,
+        },
+      });
+
+      const fetchInit = {
+        headers: { "User-Agent": "MarketLens/1.0" },
+        signal: AbortSignal.timeout(30000),
+        redirect: "manual",
+        dispatcher,
+      } as RequestInit & { dispatcher: Agent };
+
+      try {
+        const res = await fetch(currentUrl, fetchInit);
+
+        if (redirectStatuses.has(res.status)) {
+          const location = res.headers.get("location");
+          if (!location) {
+            throw new Error("Redirect response missing location header");
+          }
+
+          await res.body?.cancel();
+          currentUrl = new URL(location, currentUrl).toString();
+          redirected = true;
+          break;
+        }
+
+        if (!res.ok) {
+          throw new Error(`Failed to fetch ${currentUrl}: ${res.status}`);
+        }
+
+        const html = await res.text();
+        const $ = cheerio.load(html);
+
+        // Remove scripts/styles
+        $("script, style, noscript, iframe").remove();
+
+        const metadata: Record<string, string> = {};
+        $("meta").each((_, el) => {
+          const name = $(el).attr("name") || $(el).attr("property") || "";
+          const content = $(el).attr("content") || "";
+          if (name && content) metadata[name] = content;
+        });
+
+        const title = $("title").text().trim() || $("h1").first().text().trim();
+        const description =
+          metadata["description"] || metadata["og:description"] || $("p").first().text().trim().slice(0, 300);
+
+        const text = $("body").text().replace(/\s+/g, " ").trim().slice(0, 50000);
+
+        const links: string[] = [];
+        $("a[href]").each((_, el) => {
+          const href = $(el).attr("href");
+          if (href) {
+            try {
+              const absolute = new URL(href, currentUrl).href;
+              if (!links.includes(absolute)) links.push(absolute);
+            } catch {
+              // ignore invalid links
+            }
+          }
+        });
+
+        return { url: currentUrl, title, description, text, links, metadata };
+      } catch (err) {
+        lastFetchError = err;
+      } finally {
+        await dispatcher.close();
+      }
+    }
+
+    if (redirected) {
+      continue;
+    }
+
+    if (lastFetchError) {
+      throw lastFetchError;
+    }
+
+    throw new Error(`Unable to fetch ${currentUrl}`);
+  }
+
+  throw new Error("Too many redirects while fetching page");
 }
 
 function findSubPages(links: string[], baseUrl: string): string[] {

@@ -1,11 +1,13 @@
 "use client";
 
 import { db } from "@/lib/db";
+import { postApiJson } from "@/lib/api-client";
 import { id } from "@instantdb/react";
 import CompanyCard from "@/components/CompanyCard";
 import { useState } from "react";
 
 export default function Dashboard() {
+  const { user } = db.useAuth();
   const { isLoading, error, data } = db.useQuery({
     companies: { features: {}, pricing_tiers: {}, marketing_intel: {}, social_profiles: {}, collections: {}, job_listings: {}, events: {} },
     collections: { companies: {} },
@@ -43,8 +45,6 @@ export default function Dashboard() {
 
   const companies = data.companies || [];
   const collections = data.collections || [];
-  const mine = companies.filter((c) => c.is_mine);
-  const competitors = companies.filter((c) => !c.is_mine);
 
   const filteredCompanies = selectedCollection
     ? companies.filter((c) => c.collections?.some((col) => col.id === selectedCollection))
@@ -56,11 +56,7 @@ export default function Dashboard() {
     if (!url.trim()) return;
     setScraping(true);
     try {
-      await fetch("/api/scrape", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: url.trim(), depth }),
-      });
+      await postApiJson("/api/scrape", { url: url.trim(), depth });
       setUrl("");
       setShowAdd(false);
     } catch {} finally {
@@ -69,9 +65,15 @@ export default function Dashboard() {
   };
 
   const createCollection = () => {
-    if (!newCollName.trim()) return;
+    if (!newCollName.trim() || !user) return;
     const cid = id();
-    db.transact(db.tx.collections[cid].update({ name: newCollName.trim(), description: "" }));
+    db.transact(
+      db.tx.collections[cid].update({
+        owner_id: user.id,
+        name: newCollName.trim(),
+        description: "",
+      })
+    );
     setNewCollName("");
     setShowNewColl(false);
   };

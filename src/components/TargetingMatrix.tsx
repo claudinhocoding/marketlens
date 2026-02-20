@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { postApiJson } from "@/lib/api-client";
 
 interface Company {
   id: string;
@@ -30,11 +31,7 @@ export default function TargetingMatrix({ companies }: TargetingMatrixProps) {
   const analyze = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/compare", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "targeting_matrix" }),
-      });
+      const res = await postApiJson("/api/compare", { type: "targeting_matrix" });
       const json = await res.json();
       if (json.comparison?.targetingMatrix) {
         setData(json.comparison.targetingMatrix);
