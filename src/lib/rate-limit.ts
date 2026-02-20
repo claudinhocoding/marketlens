@@ -110,6 +110,28 @@ export function rateLimitIdentifier(
   return ip === "unknown" ? `user:${userId}` : `ip:${ip}:user:${userId}`;
 }
 
+export function requireGuestRateLimitIdentity(
+  req: NextRequest,
+  isGuest: boolean
+): NextResponse | null {
+  if (!isGuest) return null;
+
+  const ip = getClientIp(req);
+  if (ip !== "unknown") return null;
+
+  if (process.env.NODE_ENV === "production") {
+    return NextResponse.json(
+      {
+        error:
+          "Guest rate limiting requires MARKETLENS_TRUST_PROXY=true in production.",
+      },
+      { status: 503 }
+    );
+  }
+
+  return null;
+}
+
 export function requireRateLimit(opts: RateLimitOptions): NextResponse | null {
   if (!enforceRateLimit()) {
     return null;

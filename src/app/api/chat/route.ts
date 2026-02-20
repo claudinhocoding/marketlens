@@ -2,7 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/admin-db";
 import { handleQuery } from "@/lib/agent";
 import { requireApiAuth } from "@/lib/api-guard";
-import { rateLimitIdentifier, requireRateLimit } from "@/lib/rate-limit";
+import {
+  rateLimitIdentifier,
+  requireGuestRateLimitIdentity,
+  requireRateLimit,
+} from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
   try {
@@ -10,6 +14,9 @@ export async function POST(req: NextRequest) {
     if (!auth.ok) return auth.response;
 
     const ownerId = auth.user.id;
+
+    const guestIdentityCheck = requireGuestRateLimitIdentity(req, Boolean(auth.user.isGuest));
+    if (guestIdentityCheck) return guestIdentityCheck;
 
     const limited = requireRateLimit({
       bucket: "api:chat",

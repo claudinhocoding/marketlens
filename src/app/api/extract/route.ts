@@ -4,7 +4,11 @@ import { id } from "@instantdb/admin";
 import { extractAll } from "@/lib/extraction";
 import { scrapeWebsite } from "@/lib/scraper";
 import { requireApiAuth } from "@/lib/api-guard";
-import { rateLimitIdentifier, requireRateLimit } from "@/lib/rate-limit";
+import {
+  rateLimitIdentifier,
+  requireGuestRateLimitIdentity,
+  requireRateLimit,
+} from "@/lib/rate-limit";
 import { validateExternalCompanyUrl } from "@/lib/url-safety";
 
 export async function POST(req: NextRequest) {
@@ -13,6 +17,9 @@ export async function POST(req: NextRequest) {
     if (!auth.ok) return auth.response;
 
     const ownerId = auth.user.id;
+
+    const guestIdentityCheck = requireGuestRateLimitIdentity(req, Boolean(auth.user.isGuest));
+    if (guestIdentityCheck) return guestIdentityCheck;
 
     const limited = requireRateLimit({
       bucket: "api:extract",

@@ -4,7 +4,11 @@ import { id } from "@instantdb/admin";
 import { generateCompetitiveReport, generateMarketOverview } from "@/lib/reports";
 import type { CompanyData } from "@/lib/analysis";
 import { requireApiAuth } from "@/lib/api-guard";
-import { rateLimitIdentifier, requireRateLimit } from "@/lib/rate-limit";
+import {
+  rateLimitIdentifier,
+  requireGuestRateLimitIdentity,
+  requireRateLimit,
+} from "@/lib/rate-limit";
 
 function parseStringArray(value?: string): string[] {
   if (!value) return [];
@@ -22,6 +26,9 @@ export async function POST(req: NextRequest) {
     if (!auth.ok) return auth.response;
 
     const ownerId = auth.user.id;
+
+    const guestIdentityCheck = requireGuestRateLimitIdentity(req, Boolean(auth.user.isGuest));
+    if (guestIdentityCheck) return guestIdentityCheck;
 
     const limited = requireRateLimit({
       bucket: "api:report",
