@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/admin-db";
 import { id } from "@instantdb/admin";
-import { scrapeWebsite } from "@/lib/scraper";
+import { DEFAULT_SCRAPE_DEPTH, scrapeWebsite } from "@/lib/scraper";
 import { extractAll } from "@/lib/extraction";
 import { requireApiAuth } from "@/lib/api-guard";
 import {
@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const scraped = await scrapeWebsite(normalizedUrl, 5);
+    const scraped = await scrapeWebsite(normalizedUrl, DEFAULT_SCRAPE_DEPTH);
 
     // Combine all text for extraction
     const allText = [scraped.mainPage.text, ...scraped.subPages.map((p) => p.text)].join("\n\n");

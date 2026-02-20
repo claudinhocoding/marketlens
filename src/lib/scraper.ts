@@ -28,9 +28,19 @@ export interface ScrapedSite {
   socialProfiles: SocialProfile[];
   thumbnailUrl?: string;
   jobPages: ScrapedPage[];
+  crawlTruncated?: boolean;
+  crawlElapsedMs?: number;
 }
 
 const redirectStatuses = new Set([301, 302, 303, 307, 308]);
+
+const MAX_SCRAPE_DEPTH = 5;
+export const DEFAULT_SCRAPE_DEPTH = MAX_SCRAPE_DEPTH;
+
+const scrapeBudgetEnv = Number(process.env.MARKETLENS_SCRAPE_BUDGET_MS || "90000");
+const DEFAULT_SCRAPE_BUDGET_MS = Number.isFinite(scrapeBudgetEnv)
+  ? Math.max(5000, scrapeBudgetEnv)
+  : 90000;
 
 async function fetchPage(url: string): Promise<ScrapedPage> {
   let currentUrl = url;
@@ -200,9 +210,17 @@ function findJobPages(links: string[], baseUrl: string): string[] {
   return found.slice(0, 5);
 }
 
-/** Scrape a website with configurable depth (1-5 levels of link following). Defaults to 5. */
-export async function scrapeWebsite(url: string, depth: number = 5): Promise<ScrapedSite> {
-  depth = Math.min(Math.max(depth, 1), 5);
+/** Scrape a website with configurable depth (1-5 levels of link following). Defaults to policy depth. */
+export async function scrapeWebsite(
+  url: string,
+  depth: number = DEFAULT_SCRAPE_DEPTH
+): Promise<ScrapedSite> {
+  depth = Math.min(Math.max(depth, 1), MAX_SCRAPE_DEPTH);
+
+  const crawlStartedAt = Date.now();
+  let crawlTruncated = false;
+  const crawlBudgetExceeded = () => Date.now() - crawlStartedAt >= DEFAULT_SCRAPE_BUDGET_MS;
+
   const mainPage = await fetchPage(url);
   const allLinks = [...mainPage.links];
   const subPageUrls = findSubPages(mainPage.links, url);
@@ -212,6 +230,10 @@ export async function scrapeWebsite(url: string, depth: number = 5): Promise<Scr
 
   // Depth 1: scrape subPages normally
   for (const subUrl of subPageUrls) {
+    if (crawlBudgetExceeded()) {
+      crawlTruncated = true;
+      break;
+    }
     if (visited.has(subUrl)) continue;
     visited.add(subUrl);
     try {
@@ -222,13 +244,28 @@ export async function scrapeWebsite(url: string, depth: number = 5): Promise<Scr
   }
 
   // Additional depth levels
-  if (depth > 1) {
-    let frontier = subPages.flatMap(p => p.links).filter(l => {
-      try { return new URL(l).hostname === new URL(url).hostname; } catch { return false; }
+  if (depth > 1 && !crawlTruncated) {
+    let frontier = subPages.flatMap((p) => p.links).filter((l) => {
+      try {
+        return new URL(l).hostname === new URL(url).hostname;
+      } catch {
+        return false;
+      }
     });
+
     for (let d = 2; d <= depth && frontier.length > 0; d++) {
+      if (crawlBudgetExceeded()) {
+        crawlTruncated = true;
+        break;
+      }
+
       const nextFrontier: string[] = [];
       for (const link of frontier.slice(0, 10)) {
+        if (crawlBudgetExceeded()) {
+          crawlTruncated = true;
+          break;
+        }
+
         if (visited.has(link)) continue;
         visited.add(link);
         try {
@@ -238,8 +275,15 @@ export async function scrapeWebsite(url: string, depth: number = 5): Promise<Scr
           nextFrontier.push(...page.links);
         } catch {}
       }
-      frontier = nextFrontier.filter(l => {
-        try { return new URL(l).hostname === new URL(url).hostname; } catch { return false; }
+
+      if (crawlTruncated) break;
+
+      frontier = nextFrontier.filter((l) => {
+        try {
+          return new URL(l).hostname === new URL(url).hostname;
+        } catch {
+          return false;
+        }
       });
     }
   }
@@ -248,6 +292,11 @@ export async function scrapeWebsite(url: string, depth: number = 5): Promise<Scr
   const jobPageUrls = findJobPages(allLinks, url);
   const jobPages: ScrapedPage[] = [];
   for (const jobUrl of jobPageUrls) {
+    if (crawlBudgetExceeded()) {
+      crawlTruncated = true;
+      break;
+    }
+
     if (visited.has(jobUrl)) continue;
     visited.add(jobUrl);
     try {
@@ -270,5 +319,7 @@ export async function scrapeWebsite(url: string, depth: number = 5): Promise<Scr
     socialProfiles,
     thumbnailUrl,
     jobPages,
+    crawlTruncated,
+    crawlElapsedMs: Date.now() - crawlStartedAt,
   };
 }
